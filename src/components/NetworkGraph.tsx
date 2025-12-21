@@ -2,7 +2,6 @@ import { useRef, useEffect, SetStateAction, Dispatch } from 'react';
 import * as d3 from 'd3';
 import { NodeData, LinkData, Validator, LeafMeta, ValidatorLeafNodeAggregatedData, RootNode } from '../types';
 import { validators } from '../data/validators';
-import { generateLeafMeta } from '../utils/dataGenerator';
 import { aggregateLeafData } from '../utils/helper';
 
 interface NetworkGraphProps {
@@ -11,13 +10,14 @@ interface NetworkGraphProps {
     onLeafHover: (leaf: LeafMeta | null) => void;
     onRootDataCalculated: Dispatch<SetStateAction<{
         total_pods: number;
-        total_storage_comitted: number;
+        total_storage_committed: number;
         total_storage_used: number;
         average_storage_per_pod: number;
         utilization_rate: number;
         total_credits?: number;
     } | undefined>>;
     onLeavesGenerated: (leaves: LeafMeta[]) => void;
+    externalLeafData?: LeafMeta[];
 }
 
 export const NetworkGraph: React.FC<NetworkGraphProps> = ({
@@ -25,7 +25,8 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
     onValidatorHover,
     onLeafHover,
     onRootDataCalculated,
-    onLeavesGenerated
+    onLeavesGenerated,
+    externalLeafData
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const svgRef = useRef<SVGSVGElement>(null);
@@ -48,11 +49,30 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
         const width = containerRef.current.offsetWidth;
         const height = containerRef.current.offsetHeight;
 
-        // Generate data
         const nodes: NodeData[] = [];
         const links: LinkData[] = [];
         const validatorLeafMap = new Map<string, LeafMeta[]>();
 
+        externalLeafData.forEach((leaf) => {
+            // Find which validator this leaf belongs to based on version
+            const matchingValidator = validators.find(v => {
+                // Check if leaf version matches validator version
+                if (leaf.version === v.version) return true;
+                // Check if leaf version starts with validator version (e.g., 0.8.x matches 0.8)
+                const majorMinor = String(leaf.version).match(/^(\d+\.\d+)/)?.[1];
+                if (majorMinor === v.version) return true;
+                // Check for trynet versions
+                if (String(leaf.version).startsWith(v.version)) return true;
+                return false;
+            });
+
+            const validatorVersion = matchingValidator?.version || 'custom';
+            if (!validatorLeafMap.has(validatorVersion)) {
+                validatorLeafMap.set(validatorVersion, []);
+            }
+            validatorLeafMap.get(validatorVersion)!.push(leaf);
+        });
+        ``
         // Center node
         const centerNode: NodeData = {
             id: 'ROOT',
@@ -63,37 +83,52 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
         };
         nodes.push(centerNode);
 
-        // Track validator nodes for aggregation
         const validatorNodes: NodeData[] = [];
 
-        // Create validator clusters with leaves
-        let leafIndex = 0;
-        validators.forEach((val, i) => {
+        // First pass: Calculate min/max storage across all validators and leaves for scaling
+        let minValidatorStorage = Infinity;
+        let maxValidatorStorage = -Infinity;
+        let minLeafStorage = Infinity;
+        let maxLeafStorage = -Infinity;
+        
+        validatorLeafMap.forEach((validatorLeaves) => {
+            const aggregatedData = aggregateLeafData(validatorLeaves);
+            const storageSize = aggregatedData.total_storage_committed;
+            minValidatorStorage = Math.min(minValidatorStorage, storageSize);
+            maxValidatorStorage = Math.max(maxValidatorStorage, storageSize);
+            
+            // Calculate min/max for leaf nodes
+            validatorLeaves.forEach((leaf) => {
+                minLeafStorage = Math.min(minLeafStorage, leaf.storage_committed);
+                maxLeafStorage = Math.max(maxLeafStorage, leaf.storage_committed);
+            });
+        });
 
-            const clusterId = `val-${i}`;
-            const angle = (i / validators.length) * 2 * Math.PI;
+        if (minValidatorStorage === Infinity || maxValidatorStorage === -Infinity || minValidatorStorage === maxValidatorStorage) {
+            minValidatorStorage = 2000;
+            maxValidatorStorage = 20000;
+        }
+        
+        if (minLeafStorage === Infinity || maxLeafStorage === -Infinity || minLeafStorage === maxLeafStorage) {
+            minLeafStorage = 50;
+            maxLeafStorage = 550;
+        }
+
+        let clusterIndex = 0;
+        validatorLeafMap.forEach((validatorLeaves, validatorVersion) => {
+            const val = validators.find(v => v.version === validatorVersion);
+            if (!val) return;
+
+            const clusterId = `val-${clusterIndex}`;
+            const angle = (clusterIndex / validatorLeafMap.size) * 2 * Math.PI;
             const radius = 60;
 
-            // Generate leaves for this validator based on version
-            const leafCount = 25 + Math.floor(Math.random() * 20);
-            const validatorLeaves: LeafMeta[] = [];
-
-            for (let j = 0; j < leafCount; j++) {
-                validatorLeaves.push(generateLeafMeta(leafIndex++, val.version));
-            }
-
-            validatorLeafMap.set(clusterId, validatorLeaves);
-
-            // Calculate aggregated data for validator
             const aggregatedData = aggregateLeafData(validatorLeaves);
-            const validatorStorageSize = aggregatedData.total_storage_comitted;
+            const validatorStorageSize = aggregatedData.total_storage_committed;
 
-            // Scale validator node size based on storage (30-50 radius)
-            const minStorage = 2000; // 2TB minimum
-            const maxStorage = 20000; // 20TB maximum
             const minRadius = 30;
             const maxRadius = 50;
-            const validatorRadius = minRadius + ((validatorStorageSize - minStorage) / (maxStorage - minStorage)) * (maxRadius - minRadius);
+            const validatorRadius = minRadius + ((validatorStorageSize - minValidatorStorage) / (maxValidatorStorage - minValidatorStorage)) * (maxRadius - minRadius);
             const clampedRadius = Math.max(minRadius, Math.min(maxRadius, validatorRadius));
 
             const validatorNode: NodeData = {
@@ -107,18 +142,19 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
                 aggregatedData
             };
             nodes.push(validatorNode);
-            validatorNodes.push(validatorNode); // Track for aggregation
+            validatorNodes.push(validatorNode); 
             links.push({ source: 'ROOT', target: clusterId, type: 'primary' });
 
+            const leafCount = validatorLeaves.length;
             const minLeafCount = 25;
             const maxLeafCount = 45;
             const maxDistance = 400;
             const minDistance = 200;
-            const baseDistance = maxDistance - ((leafCount - minLeafCount) / (maxLeafCount - minLeafCount)) * (maxDistance - minDistance);
+            const baseDistance = maxDistance - ((Math.min(leafCount, maxLeafCount) - minLeafCount) / (maxLeafCount - minLeafCount)) * (maxDistance - minDistance);
 
             const minArcSpread = Math.PI / 6;
             const maxArcSpread = Math.PI / 3.5;
-            const arcSpread = minArcSpread + ((leafCount - minLeafCount) / (maxLeafCount - minLeafCount)) * (maxArcSpread - minArcSpread);
+            const arcSpread = minArcSpread + ((Math.min(leafCount, maxLeafCount) - minLeafCount) / (maxLeafCount - minLeafCount)) * (maxArcSpread - minArcSpread);
 
             const numLevels = 4;
             const leavesPerLevel = Math.ceil(leafCount / numLevels);
@@ -132,12 +168,10 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
                 const leafAngleOffset = (indexInLevel / Math.max(totalInLevel - 1, 1)) * arcSpread - arcSpread / 2;
                 const leafAngle = angle + leafAngleOffset;
 
-                // Scale leaf node size based on storage committed (8-16 box size)
-                const minLeafStorage = 50;
-                const maxLeafStorage = 550;
+                // Scale leaf node size based on actual storage range (8-16 box size)
                 const minBoxSize = 8;
                 const maxBoxSize = 16;
-                const leafBoxSize = minBoxSize + ((leafMeta.storage_comitted - minLeafStorage) / (maxLeafStorage - minLeafStorage)) * (maxBoxSize - minBoxSize);
+                const leafBoxSize = minBoxSize + ((leafMeta.storage_committed - minLeafStorage) / (maxLeafStorage - minLeafStorage)) * (maxBoxSize - minBoxSize);
                 const clampedBoxSize = Math.max(minBoxSize, Math.min(maxBoxSize, leafBoxSize));
 
                 nodes.push({
@@ -152,6 +186,8 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
                 });
                 links.push({ source: clusterId, target: `${clusterId}-leaf-${j}`, type: 'leaf' });
             });
+
+            clusterIndex++;
         });
 
         // Calculate root/network data from all validators
@@ -159,7 +195,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
         const rootAggregatedData = aggregateLeafData(allLeafMetas);
         onRootDataCalculated({
             total_pods: allLeafMetas.length,
-            total_storage_comitted: rootAggregatedData.total_storage_comitted,
+            total_storage_committed: rootAggregatedData.total_storage_committed,
             total_storage_used: rootAggregatedData.total_storage_used,
             average_storage_per_pod: rootAggregatedData.average_storage_per_pod,
             utilization_rate: rootAggregatedData.utilization_rate,
@@ -715,7 +751,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
         return () => {
             simulation.stop();
         };
-    }, [isDark, onValidatorHover, onLeafHover]);
+    }, [isDark, onValidatorHover, onLeafHover, externalLeafData]);
 
     const bgClass = isDark
         ? 'bg-gradient-to-br from-[#0a0e1a] via-[#0f1420] to-[#1a0f2e]'

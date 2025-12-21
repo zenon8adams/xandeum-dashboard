@@ -2,7 +2,7 @@ import React from 'react';
 import * as d3 from 'd3';
 import { Validator, LeafMeta, ValidatorLeafNodeAggregatedData, RootNode } from '../types';
 import { validators } from '../data/validators';
-import { formatBytes, formatNumber } from '../utils/dataGenerator';
+import { shortenName, formatBytes, formatNumber, formatUptime } from '../utils/helper';
 
 interface SidebarProps {
     isDark: boolean;
@@ -152,15 +152,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 </svg>
                             </div>
                             <div className="flex-1">
-                                <h1 className={`m-0 text-xl font-bold ${textColor} mb-2`}>{hoveredLeaf.pubkey}</h1>
+                                <h1 className={`m-0 text-xl font-bold ${textColor} mb-2`}>{shortenName(hoveredLeaf.pubkey)}</h1>
+                                <div className={`text-xs ${textSecondary} mb-2 font-mono flex items-center gap-2`}>
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                        <rect x="4" y="4" width="16" height="16" rx="2" />
+                                        <path d="M9 9h.01M9 13h.01M9 17h.01M13 9h.01M13 13h.01M13 17h.01M17 9h.01M17 13h.01M17 17h.01" />
+                                    </svg>
+                                    Version {hoveredLeaf.version}
+                                </div>
                                 <div className="flex gap-2">
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-600 dark:text-blue-300 border border-blue-500/30">
                                         <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
                                         Provider
                                     </span>
-                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${hoveredLeaf.is_accessible ? 'bg-green-500/20 text-green-600 dark:text-green-300 border border-green-500/30' : 'bg-red-500/20 text-red-600 dark:text-red-300 border border-red-500/30'}`}>
-                                        {hoveredLeaf.is_accessible ? 'Online' : 'Offline'}
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${hoveredLeaf.is_accessible && hoveredLeaf.last_seen ? 'bg-green-500/20 text-green-600 dark:text-green-300 border border-green-500/30' : 'bg-red-500/20 text-red-600 dark:text-red-300 border border-red-500/30'}`}>
+                                        {hoveredLeaf.is_accessible && hoveredLeaf.last_seen ? 'Online' : 'Offline'}
                                     </span>
+                                    {hoveredLeaf.is_accessible && (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border border-cyan-500/30">
+                                            Accessible
+                                        </span>
+                                    )}
                                     {hoveredLeaf.is_public && (
                                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-500/30">
                                             Public
@@ -244,21 +256,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                         </div>
                                         <div>
                                             <div className={`text-xs ${textSecondary} mb-1`}>Committed</div>
-                                            <div className={`text-lg font-semibold ${textSecondary}`}>{formatBytes(hoveredLeaf.storage_comitted)}</div>
+                                            <div className={`text-lg font-semibold ${textSecondary}`}>{formatBytes(hoveredLeaf.storage_committed)}</div>
                                         </div>
                                         <div>
                                             <div className={`text-xs ${textSecondary} mb-1`}>Available</div>
-                                            <div className={`text-base font-semibold text-green-500`}>{formatBytes(hoveredLeaf.storage_comitted - hoveredLeaf.storage_used)}</div>
+                                            <div className={`text-base font-semibold text-green-500`}>{formatBytes(hoveredLeaf.storage_committed - hoveredLeaf.storage_used)}</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Stats Grid - 3 columns */}
-                        <div className="grid grid-cols-3 gap-3 mb-6">
-                            <StatCard label="Uptime" value={`${hoveredLeaf.uptime.toFixed(2)}%`} color="#10B981" />
-                            <StatCard label="Version" value={`v${hoveredLeaf.version}`} color="#3B82F6" />
+                        <div className="grid grid-cols-2 gap-3 mb-6">
+                            <StatCard label="Uptime" value={formatUptime(hoveredLeaf.uptime)} color="#10B981" />
                             <StatCard label="Status" value={hoveredLeaf.is_registered ? 'Registered' : 'Pending'} color="#8B5CF6" />
                         </div>
 
@@ -388,7 +398,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 <h2 className={`text-2xl font-bold ${textColor} mb-1`}>
                                     {hoveredValidator.name}
                                 </h2>
-                                <p className={`text-sm ${textSecondary}`}>{hoveredValidator.name}</p>
+                                <p className={`text-sm ${textSecondary}`}>Version {hoveredValidator.version}</p>
                             </div>
                         </div>
 
@@ -444,7 +454,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                                             </div>
                                                             <div className="flex-1 min-w-0">
                                                                 <div className={`text-sm font-bold ${textColor} mb-1 truncate`}>
-                                                                    {provider.pubkey}
+                                                                    {shortenName(provider.pubkey)}
                                                                 </div>
                                                                 <div className="flex items-center gap-2">
                                                                     <div className="text-lg font-bold bg-gradient-to-r from-yellow-500 to-orange-500 bg-clip-text text-transparent">
@@ -567,13 +577,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                                 <div>
                                                     <div className={`text-xs ${textSecondary} mb-1`}>Total Committed</div>
                                                     <div className={`text-lg font-semibold ${textSecondary}`}>
-                                                        {formatBytes(hoveredValidatorData.total_storage_comitted)}
+                                                        {formatBytes(hoveredValidatorData.total_storage_committed)}
                                                     </div>
                                                 </div>
                                                 <div>
                                                     <div className={`text-xs ${textSecondary} mb-1`}>Available</div>
                                                     <div className={`text-base font-semibold text-green-500`}>
-                                                        {formatBytes(hoveredValidatorData.total_storage_comitted - hoveredValidatorData.total_storage_used)}
+                                                        {formatBytes(hoveredValidatorData.total_storage_committed - hoveredValidatorData.total_storage_used)}
                                                     </div>
                                                 </div>
                                             </div>
@@ -808,7 +818,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     <div className="space-y-3">
                                         <MiniBarChart
                                             value={hoveredValidatorData.total_storage_used}
-                                            max={hoveredValidatorData.total_storage_comitted}
+                                            max={hoveredValidatorData.total_storage_committed}
                                             color={hoveredValidator.color}
                                             label="Utilization"
                                         />
@@ -817,13 +827,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                                 <div>
                                                     <span className={textSecondary}>Available Space</span>
                                                     <div className={`${textColor} font-bold text-base mt-1`}>
-                                                        {formatBytes(hoveredValidatorData.total_storage_comitted - hoveredValidatorData.total_storage_used)}
+                                                        {formatBytes(hoveredValidatorData.total_storage_committed - hoveredValidatorData.total_storage_used)}
                                                     </div>
                                                 </div>
                                                 <div>
                                                     <span className={textSecondary}>Capacity</span>
                                                     <div className={`${textColor} font-bold text-base mt-1`}>
-                                                        {formatBytes(hoveredValidatorData.total_storage_comitted)}
+                                                        {formatBytes(hoveredValidatorData.total_storage_committed)}
                                                     </div>
                                                 </div>
                                             </div>
@@ -913,7 +923,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                                     <StatCard
                                         label="Total Committed"
-                                        value={formatBytes(rootData.total_storage_comitted)}
+                                        value={formatBytes(rootData.total_storage_committed)}
                                         icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" /></svg>}
                                         color="#8B5CF6"
                                     />
@@ -976,7 +986,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <div className="space-y-2">
                             {validators.map((v) => (
                                 <div
-                                    key={v.name}
+                                    key={v.version}
                                     className={`flex items-center gap-3 py-3 px-4 rounded-xl text-sm ${textSecondary} transition-all cursor-pointer hover:${isDark ? 'bg-gray-800/50' : 'bg-gray-100/50'} group border ${isDark ? 'border-gray-800/30' : 'border-gray-200/30'}`}
                                 >
                                     <div

@@ -2,7 +2,7 @@ import * as d3 from 'd3';
 
 export interface RootNode {
     total_pods: number;
-    total_storage_comitted: number;
+    total_storage_committed: number;
     total_storage_used: number;
     average_storage_per_pod: number;
     utilization_rate: number;
@@ -19,7 +19,7 @@ export interface Validator {
 
 export interface ValidatorLeafNodeAggregatedData {
     operators: number;
-    total_storage_comitted: number;
+    total_storage_committed: number;
     total_storage_used: number;
     average_storage_per_pod: number;
     utilization_rate: number;
@@ -65,12 +65,13 @@ export interface LeafMeta {
     };
     is_accessible: boolean;
     is_public: boolean;
-    last_seen: boolean;
-    storage_comitted: number;
+    last_seen: number;
+    is_online: boolean;
+    storage_committed: number;
     storage_used: number;
     usage_percent: number;
     uptime: number;
-    version: number;
+    version: string;
     credit?: number;
     credit_rank?: number;
 }

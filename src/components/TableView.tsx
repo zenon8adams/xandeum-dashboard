@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { LeafMeta } from '../types';
-import { formatBytes } from '../utils/dataGenerator';
+import { formatBytes, formatUptime, formatTimestamp, getCountryFlag } from '../utils/helper';
 
 interface TableViewProps {
     isDark: boolean;
@@ -12,7 +12,7 @@ interface TableViewProps {
 export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafHover, selectedLeaf }) => {
     const [displayedLeaves, setDisplayedLeaves] = useState<LeafMeta[]>([]);
     const [page, setPage] = useState(1);
-    const [sortBy, setSortBy] = useState<'credit' | 'storage' | 'uptime' | 'pubkey'>('credit');
+    const [sortBy, setSortBy] = useState<'credit' | 'storage' | 'uptime' | 'pubkey' | 'last_seen'>('credit');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [searchQuery, setSearchQuery] = useState('');
     const observerTarget = useRef<HTMLDivElement>(null);
@@ -53,6 +53,10 @@ export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafH
                 case 'uptime':
                     aValue = a.uptime;
                     bValue = b.uptime;
+                    break;
+                case 'last_seen':
+                    aValue = a.last_seen;
+                    bValue = b.last_seen;
                     break;
                 case 'pubkey':
                     aValue = a.pubkey;
@@ -119,7 +123,7 @@ export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafH
     };
 
     const getStatusBadge = (leaf: LeafMeta) => {
-        const isOnline = leaf.is_accessible && leaf.last_seen;
+        const isOnline = leaf.is_online;
         return (
             <div className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
@@ -133,11 +137,10 @@ export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafH
     const getRankBadge = (rank?: number) => {
         if (!rank) return null;
         return (
-            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${
-                rank === 1 ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white' :
-                rank === 2 ? 'bg-gradient-to-r from-gray-400 to-gray-500 text-white' :
-                'bg-gradient-to-r from-orange-700 to-orange-800 text-white'
-            }`}>
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${rank === 1 ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white' :
+                    rank === 2 ? 'bg-gradient-to-r from-gray-400 to-gray-500 text-white' :
+                        'bg-gradient-to-r from-orange-700 to-orange-800 text-white'
+                }`}>
                 #{rank}
             </span>
         );
@@ -177,7 +180,19 @@ export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafH
                         <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-100'} px-4 py-2 rounded-lg`}>
                             <div className={`text-xs ${textSecondary} mb-1`}>Total Online</div>
                             <div className={`text-xl font-bold text-green-600 dark:text-green-400`}>
-                                {allLeaves.filter(l => l.is_accessible && l.last_seen).length}
+                                {allLeaves.filter(l => l.is_online).length}
+                            </div>
+                        </div>
+                        <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-100'} px-4 py-2 rounded-lg`}>
+                            <div className={`text-xs ${textSecondary} mb-1`}>Accessible</div>
+                            <div className={`text-xl font-bold text-blue-600 dark:text-blue-400`}>
+                                {allLeaves.filter(l => l.is_accessible).length}
+                            </div>
+                        </div>
+                        <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-100'} px-4 py-2 rounded-lg`}>
+                            <div className={`text-xs ${textSecondary} mb-1`}>Public Nodes</div>
+                            <div className={`text-xl font-bold text-purple-600 dark:text-purple-400`}>
+                                {allLeaves.filter(l => l.is_public).length}
                             </div>
                         </div>
                         <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-100'} px-4 py-2 rounded-lg`}>
@@ -243,104 +258,108 @@ export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafH
                                     <SortIcon column="uptime" />
                                 </button>
                             </th>
+                            <th className={`px-6 py-4 text-left ${textSecondary} text-xs font-semibold uppercase tracking-wider`}>
+                                <button onClick={() => handleSort('last_seen')} className="flex items-center gap-2 hover:text-purple-500 transition-colors">
+                                    Last Seen
+                                    <SortIcon column="last_seen" />
+                                </button>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
-                        {displayedLeaves.map((leaf, index) => (
-                            <tr
-                                key={leaf.pubkey}
-                                onClick={() => onLeafHover(leaf)}
-                                onMouseEnter={() => onLeafHover(leaf)}
-                                className={`${hoverBg} ${selectedLeaf?.pubkey === leaf.pubkey ? (isDark ? 'bg-purple-900/20' : 'bg-purple-100') : ''} border-b ${border} cursor-pointer transition-colors`}
-                            >
-                                <td className="px-6 py-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold ${
-                                            
-                                            isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-600'
-                                        }`}>
-                                            {'📦'}
-                                        </div>
-                                        <div>
-                                            <div className={`font-mono text-sm ${textColor} font-medium flex items-center gap-2`}>
-                                                {leaf.pubkey.substring(0, 8)}...{leaf.pubkey.substring(leaf.pubkey.length - 6)}
+                        {displayedLeaves.map((leaf, index) => {
+                            return (
+                                <tr
+                                    key={leaf.pubkey}
+                                    onClick={() => onLeafHover(leaf)}
+                                    onMouseEnter={() => onLeafHover(leaf)}
+                                    className={`${hoverBg} ${selectedLeaf?.pubkey === leaf.pubkey ? (isDark ? 'bg-purple-900/20' : 'bg-purple-100') : ''} border-b ${border} cursor-pointer transition-colors`}
+                                >
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold ${isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-600'
+                                                }`}>
+                                                {'📦'}
                                             </div>
-                                            <div className={`text-xs ${textSecondary}`}>v{leaf.version}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="flex items-center gap-2">
-                                        {leaf.address.ip_info && (
-                                            <>
-                                                <span className="text-xl">{leaf.address.ip_info.countryCode === 'US' ? '🇺🇸' : 
-                                                    leaf.address.ip_info.countryCode === 'GB' ? '🇬🇧' :
-                                                    leaf.address.ip_info.countryCode === 'DE' ? '🇩🇪' :
-                                                    leaf.address.ip_info.countryCode === 'JP' ? '🇯🇵' :
-                                                    leaf.address.ip_info.countryCode === 'SG' ? '🇸🇬' :
-                                                    leaf.address.ip_info.countryCode === 'AU' ? '🇦🇺' :
-                                                    leaf.address.ip_info.countryCode === 'CA' ? '🇨🇦' :
-                                                    leaf.address.ip_info.countryCode === 'FR' ? '🇫🇷' :
-                                                    leaf.address.ip_info.countryCode === 'BR' ? '🇧🇷' :
-                                                    leaf.address.ip_info.countryCode === 'IN' ? '🇮🇳' : '🌍'
-                                                }</span>
-                                                <div>
-                                                    <div className={`text-sm ${textColor}`}>{leaf.address.ip_info.countryName}</div>
-                                                    <div className={`text-xs ${textSecondary}`}>{leaf.address.ip_info.continentName}</div>
+                                            <div>
+                                                <div className={`font-mono text-sm ${textColor} font-medium flex items-center gap-2`}>
+                                                    {leaf.pubkey.substring(0, 8)}...{leaf.pubkey.substring(leaf.pubkey.length - 6)}
+                                                    {leaf.credit_rank && getRankBadge(leaf.credit_rank)}
                                                 </div>
-                                            </>
+                                                <div className={`text-xs ${textSecondary}`}>v{leaf.version}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-2">
+                                            {leaf.address.ip_info && (
+                                                <>
+                                                    <span className="text-xl">{getCountryFlag(leaf.address.ip_info.countryCode)}</span>
+                                                    <div>
+                                                        <div className={`text-sm ${textColor}`}>{leaf.address.ip_info.countryName}</div>
+                                                        <div className={`text-xs ${textSecondary}`}>{leaf.address.ip_info.continentName}</div>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {getStatusBadge(leaf)}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="text-lg font-bold bg-gradient-to-r from-yellow-500 to-orange-500 bg-clip-text text-transparent">
+                                            {(leaf.credit || 0).toLocaleString()}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div>
+                                            <div className={`text-sm ${textColor} mb-1`}>
+                                                {formatBytes(leaf.storage_used)} / {formatBytes(leaf.storage_committed)}
+                                            </div>
+                                            <div className={`h-2 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full overflow-hidden`}>
+                                                <div
+                                                    className="h-full bg-gradient-to-r from-purple-500 to-cyan-500 transition-all"
+                                                    style={{ width: `${leaf.usage_percent}%` }}
+                                                />
+                                            </div>
+                                            <div className={`text-xs ${textSecondary} mt-1`}>{leaf.usage_percent.toFixed(1)}% used</div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {leaf.accessible_node_detail ? (
+                                            <div className="space-y-1">
+                                                <div className={`text-xs ${textSecondary}`}>
+                                                    CPU: <span className={textColor}>{leaf.accessible_node_detail.cpu_usage.toFixed(1)}%</span>
+                                                </div>
+                                                <div className={`text-xs ${textSecondary}`}>
+                                                    RAM: <span className={textColor}>{((leaf.accessible_node_detail.total_ram_used / leaf.accessible_node_detail.total_ram_available) * 100).toFixed(1)}%</span>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <span className={`text-xs ${textSecondary}`}>N/A</span>
                                         )}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    {getStatusBadge(leaf)}
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="text-lg font-bold bg-gradient-to-r from-yellow-500 to-orange-500 bg-clip-text text-transparent">
-                                        {(leaf.credit || 0).toLocaleString()}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div>
-                                        <div className={`text-sm ${textColor} mb-1`}>
-                                            {formatBytes(leaf.storage_used)} / {formatBytes(leaf.storage_comitted)}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className={`text-sm font-medium ${textColor}`}>
+                                            {formatUptime(leaf.uptime)}
                                         </div>
-                                        <div className={`h-2 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full overflow-hidden`}>
-                                            <div
-                                                className="h-full bg-gradient-to-r from-purple-500 to-cyan-500 transition-all"
-                                                style={{ width: `${leaf.usage_percent}%` }}
-                                            />
-                                        </div>
-                                        <div className={`text-xs ${textSecondary} mt-1`}>{leaf.usage_percent.toFixed(1)}% used</div>
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    {leaf.accessible_node_detail ? (
+                                    </td>
+                                    <td className="px-6 py-4">
                                         <div className="space-y-1">
-                                            <div className={`text-xs ${textSecondary}`}>
-                                                CPU: <span className={textColor}>{leaf.accessible_node_detail.cpu_usage.toFixed(1)}%</span>
+                                            <div className="flex items-center gap-2">
+                                                <div className={`w-2 h-2 rounded-full ${typeof leaf.last_seen === 'number' && (Date.now() - leaf.last_seen) < 300000 ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+                                                <span className={`text-sm font-medium ${textColor}`}>
+                                                    {typeof leaf.last_seen === 'number' ? formatTimestamp(leaf.last_seen) : 'Never'}
+                                                </span>
                                             </div>
                                             <div className={`text-xs ${textSecondary}`}>
-                                                RAM: <span className={textColor}>{((leaf.accessible_node_detail.total_ram_used / leaf.accessible_node_detail.total_ram_available) * 100).toFixed(1)}%</span>
+                                                {typeof leaf.last_seen === 'number' && new Date(leaf.last_seen).toLocaleString()}
                                             </div>
                                         </div>
-                                    ) : (
-                                        <span className={`text-xs ${textSecondary}`}>N/A</span>
-                                    )}
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="flex items-center gap-2">
-                                        <div className={`h-2 w-24 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full overflow-hidden`}>
-                                            <div
-                                                className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all"
-                                                style={{ width: `${leaf.uptime}%` }}
-                                            />
-                                        </div>
-                                        <span className={`text-sm font-medium ${textColor}`}>{leaf.uptime.toFixed(1)}%</span>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
 

@@ -4,7 +4,9 @@ import { NetworkGraph } from './components/NetworkGraph';
 import { Sidebar } from './components/Sidebar';
 import { TableView } from './components/TableView';
 import { ViewToggle } from './components/ToggleView';
+import { ApiDataIntegrator } from './components/ApiDataIntegrator';
 import { aggregateLeafData } from './utils/dataGenerator';
+
 
 export default function SolanaNetworkTopology() {
     const [hoveredValidator, setHoveredValidator] = useState<Validator | null>(null);
@@ -12,7 +14,7 @@ export default function SolanaNetworkTopology() {
     const [hoveredLeaf, setHoveredLeaf] = useState<LeafMeta | null>(null);
     const [rootData, setRootData] = useState<{
         total_pods: number;
-        total_storage_comitted: number;
+        total_storage_committed: number;
         total_storage_used: number;
         average_storage_per_pod: number;
         utilization_rate: number;
@@ -21,9 +23,9 @@ export default function SolanaNetworkTopology() {
     const [isDark, setIsDark] = useState(false);
     const [view, setView] = useState<'network' | 'table'>('network');
     const [allLeaves, setAllLeaves] = useState<LeafMeta[]>([]);
+    const [apiLeaves, setApiLeaves] = useState<LeafMeta[]>([]);
     const [globalAggregatedData, setGlobalAggregatedData] = useState<ValidatorLeafNodeAggregatedData | undefined>(undefined);
 
-    // Detect system theme preference
     useEffect(() => {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         setIsDark(mediaQuery.matches);
@@ -95,9 +97,7 @@ export default function SolanaNetworkTopology() {
                 }
             });
 
-            // Now compute aggregated data with updated ranks
             const aggregated = aggregateLeafData(allLeaves);
-            // Override top_credit_providers to include all tied rankings
             aggregated.top_credit_providers = topProviders;
             setGlobalAggregatedData(aggregated);
         }
@@ -112,8 +112,11 @@ export default function SolanaNetworkTopology() {
         setAllLeaves(leaves);
     }, []);
 
-    // When in table view and a leaf is selected, clear validator hover
-    // and ensure the leaf has the correct global credit_rank
+    const handleApiLeavesGenerated = useCallback((leaves: LeafMeta[]) => {
+        setApiLeaves(leaves);
+        setAllLeaves(leaves);
+    }, []);
+
     const handleLeafHoverInTable = useCallback((leaf: LeafMeta | null) => {
         if (leaf && view === 'table' && globalAggregatedData) {
             // Find this leaf in the global top 3 to ensure it has the correct rank
@@ -153,6 +156,11 @@ export default function SolanaNetworkTopology() {
 
     return (
         <div className="flex h-screen overflow-hidden font-['Space_Grotesk',system-ui,-apple-system,'Segoe_UI',sans-serif]">
+            <ApiDataIntegrator
+                onLeavesGenerated={handleApiLeavesGenerated}
+                onRootDataCalculated={setRootData}
+            />
+            
             {view === 'network' ? (
                 <NetworkGraph 
                     isDark={isDark}
@@ -160,6 +168,7 @@ export default function SolanaNetworkTopology() {
                     onLeafHover={setHoveredLeaf}
                     onRootDataCalculated={setRootData}
                     onLeavesGenerated={handleLeavesGenerated}
+                    externalLeafData={apiLeaves}
                 />
             ) : (
                 <TableView
