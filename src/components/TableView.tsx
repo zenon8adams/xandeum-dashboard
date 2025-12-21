@@ -256,17 +256,14 @@ export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafH
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
                                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold ${
-                                            leaf.credit_rank === 1 ? 'bg-gradient-to-br from-yellow-500 to-orange-500 text-white shadow-lg shadow-yellow-500/30' :
-                                            leaf.credit_rank === 2 ? 'bg-gradient-to-br from-gray-400 to-gray-500 text-white shadow-lg shadow-gray-400/30' :
-                                            leaf.credit_rank === 3 ? 'bg-gradient-to-br from-orange-700 to-orange-800 text-white shadow-lg shadow-orange-700/30' :
+                                            
                                             isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-600'
                                         }`}>
-                                            {leaf.credit_rank ? `#${leaf.credit_rank}` : '📦'}
+                                            {'📦'}
                                         </div>
                                         <div>
                                             <div className={`font-mono text-sm ${textColor} font-medium flex items-center gap-2`}>
                                                 {leaf.pubkey.substring(0, 8)}...{leaf.pubkey.substring(leaf.pubkey.length - 6)}
-                                                {getRankBadge(leaf.credit_rank)}
                                             </div>
                                             <div className={`text-xs ${textSecondary}`}>v{leaf.version}</div>
                                         </div>

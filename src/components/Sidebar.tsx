@@ -351,21 +351,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </>
                 ) : hoveredValidator ? (
                     <>
-                        {/* Validator Node View */}
-                        <div className={`flex items-center gap-4 mb-6 pb-6 border-b ${border}`}>
+                        {/* Validator Header */}
+                        <div className="flex items-center gap-4 mb-6">
                             <div
-                                className="w-16 h-16 rounded-xl flex items-center justify-center font-bold text-white text-2xl shadow-lg relative overflow-hidden"
-                                style={{ background: `linear-gradient(135deg, ${hoveredValidator.color}, ${d3.color(hoveredValidator.color)?.darker(0.5)})` }}
+                                className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-lg"
+                                style={{
+                                    background: `linear-gradient(135deg, ${hoveredValidator.color}dd, ${hoveredValidator.color}88)`,
+                                }}
                             >
-                                <div className="absolute inset-0 bg-gradient-to-br from-white/15 to-transparent"></div>
-                                <span className="relative z-10">{hoveredValidator.name.substring(0, 2)}</span>
+                                {hoveredValidator.name.charAt(0)}
                             </div>
                             <div className="flex-1">
-                                <h1 className={`m-0 text-xl font-bold ${textColor} mb-2`}>{hoveredValidator.name}</h1>
-                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    v{hoveredValidator.version}
-                                </span>
+                                <h2 className={`text-2xl font-bold ${textColor} mb-1`}>
+                                    {hoveredValidator.name}
+                                </h2>
+                                <p className={`text-sm ${textSecondary}`}>{hoveredValidator.name}</p>
                             </div>
                         </div>
 
@@ -518,7 +518,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     </div>
                                 </div>
 
-                                {/* Storage Analytics with Multiple Charts */}
                                 {/* Storage Analytics with Multiple Charts */}
                                 <div className="mb-6">
                                     <h3 className={`text-xs uppercase tracking-wider ${textSecondary} mb-4 font-bold flex items-center gap-2`}>
