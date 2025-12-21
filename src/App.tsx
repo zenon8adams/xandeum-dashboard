@@ -37,7 +37,7 @@ export default function SolanaNetworkTopology() {
     // This ensures global top 3 credit rankings are computed
     useEffect(() => {
         if (allLeaves.length > 0) {
-            // Sort all leaves by credit to find global top performers
+            // Sort all leaves by credit to find global top 3
             // Prioritize nodes that already have credit_rank assigned, then by credit amount
             const sortedByCredit = [...allLeaves]
                 .filter(leaf => leaf.credit !== undefined)
@@ -45,38 +45,38 @@ export default function SolanaNetworkTopology() {
                     // First, prioritize nodes that already have a credit_rank
                     const aHasRank = a.credit_rank !== undefined;
                     const bHasRank = b.credit_rank !== undefined;
-
+                    
                     if (aHasRank && !bHasRank) return -1;
                     if (!aHasRank && bHasRank) return 1;
-
+                    
                     // If both have ranks, sort by rank value
                     if (aHasRank && bHasRank) {
                         return (a.credit_rank || 0) - (b.credit_rank || 0);
                     }
-
+                    
                     // Otherwise, sort by credit amount descending
                     return (b.credit || 0) - (a.credit || 0);
                 });
-
+            
             // Clear all existing ranks first
             allLeaves.forEach(leaf => {
                 delete leaf.credit_rank;
             });
-
+            
             // Assign ranks based on credit scores, handling ties
             // Multiple nodes with the same credit get the same rank
             let currentRank = 1;
             let previousCredit: number | undefined = undefined;
             const topProviders: Array<{ pubkey: string; credit: number; rank: number }> = [];
-
+            
             sortedByCredit.forEach((leaf, index) => {
                 const currentCredit = leaf.credit || 0;
-
+                
                 // If credit is different from previous, update rank based on position
                 if (previousCredit !== undefined && currentCredit < previousCredit) {
                     currentRank = index + 1; // Move to next rank position
                 }
-
+                
                 // Only assign ranks 1, 2, or 3
                 if (currentRank <= 3) {
                     leaf.credit_rank = currentRank;
@@ -86,9 +86,9 @@ export default function SolanaNetworkTopology() {
                         rank: currentRank
                     });
                 }
-
+                
                 previousCredit = currentCredit;
-
+                
                 // Stop if we've passed rank 3
                 if (currentRank > 3) {
                     return;
@@ -120,7 +120,7 @@ export default function SolanaNetworkTopology() {
             const topProvider = globalAggregatedData.top_credit_providers.find(
                 provider => provider.pubkey === leaf.pubkey
             );
-
+            
             if (topProvider) {
                 // Update the leaf with global rank
                 leaf.credit_rank = topProvider.rank;
@@ -129,7 +129,7 @@ export default function SolanaNetworkTopology() {
                 delete leaf.credit_rank;
             }
         }
-
+        
         setHoveredLeaf(leaf);
         if (view === 'table') {
             setHoveredValidator(null);
@@ -146,10 +146,15 @@ export default function SolanaNetworkTopology() {
         return hoveredValidatorData;
     };
 
+    // Theme toggle handler
+    const handleThemeToggle = useCallback(() => {
+        setIsDark(prev => !prev);
+    }, []);
+
     return (
         <div className="flex h-screen overflow-hidden font-['Space_Grotesk',system-ui,-apple-system,'Segoe_UI',sans-serif]">
             {view === 'network' ? (
-                <NetworkGraph
+                <NetworkGraph 
                     isDark={isDark}
                     onValidatorHover={handleValidatorHover}
                     onLeafHover={setHoveredLeaf}
@@ -164,13 +169,14 @@ export default function SolanaNetworkTopology() {
                     selectedLeaf={hoveredLeaf}
                 />
             )}
-
-            <Sidebar
+            
+            <Sidebar 
                 isDark={isDark}
                 hoveredValidator={hoveredValidator}
                 hoveredValidatorData={getValidatorDataForSidebar()}
                 hoveredLeaf={hoveredLeaf}
                 rootData={rootData}
+                onThemeToggle={handleThemeToggle}
             />
 
             <ViewToggle
