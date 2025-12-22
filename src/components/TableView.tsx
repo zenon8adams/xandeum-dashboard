@@ -25,7 +25,6 @@ export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafH
     const textSecondary = isDark ? 'text-gray-400' : 'text-gray-600';
     const hoverBg = isDark ? 'hover:bg-gray-700/50' : 'hover:bg-gray-100';
 
-    // Filter and sort leaves
     const filteredAndSortedLeaves = React.useMemo(() => {
         let filtered = allLeaves;
 
@@ -43,40 +42,43 @@ export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafH
 
             switch (sortBy) {
                 case 'credit':
-                    aValue = a.credit || 0;
-                    bValue = b.credit || 0;
+                    aValue = a.credit ?? 0;
+                    bValue = b.credit ?? 0;
                     break;
                 case 'storage':
-                    aValue = a.usage_percent;
-                    bValue = b.usage_percent;
+                    aValue = a.usage_percent ?? 0;
+                    bValue = b.usage_percent ?? 0;
                     break;
                 case 'uptime':
-                    aValue = a.uptime;
-                    bValue = b.uptime;
+                    aValue = a.uptime ?? 0;
+                    bValue = b.uptime ?? 0;
                     break;
                 case 'last_seen':
-                    aValue = a.last_seen;
-                    bValue = b.last_seen;
+                    aValue = a.last_seen ?? 0;
+                    bValue = b.last_seen ?? 0;
                     break;
                 case 'pubkey':
-                    aValue = a.pubkey;
-                    bValue = b.pubkey;
+                    aValue = a.pubkey ?? '';
+                    bValue = b.pubkey ?? '';
                     break;
                 default:
                     return 0;
             }
 
-            if (sortOrder === 'asc') {
-                return aValue > bValue ? 1 : -1;
+            if (typeof aValue === 'string' && typeof bValue === 'string') {
+                return sortOrder === 'asc'
+                    ? aValue.localeCompare(bValue)
+                    : bValue.localeCompare(aValue);
             } else {
-                return aValue < bValue ? 1 : -1;
+                return sortOrder === 'asc'
+                    ? aValue - bValue
+                    : bValue - aValue;
             }
         });
 
         return sorted;
     }, [allLeaves, searchQuery, sortBy, sortOrder]);
 
-    // Load initial data
     useEffect(() => {
         setDisplayedLeaves(filteredAndSortedLeaves.slice(0, ITEMS_PER_PAGE));
         setPage(1);
@@ -270,10 +272,10 @@ export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafH
                         {displayedLeaves.map((leaf, index) => {
                             return (
                                 <tr
-                                    key={leaf.pubkey}
+                                    key={leaf.address.endpoint}
                                     onClick={() => onLeafHover(leaf)}
                                     onMouseEnter={() => onLeafHover(leaf)}
-                                    className={`${hoverBg} ${selectedLeaf?.pubkey === leaf.pubkey ? (isDark ? 'bg-purple-900/20' : 'bg-purple-100') : ''} border-b ${border} cursor-pointer transition-colors`}
+                                    className={`${hoverBg} ${selectedLeaf?.address.endpoint === leaf.address.endpoint ? (isDark ? 'bg-purple-900/20' : 'bg-purple-100') : ''} border-b ${border} cursor-pointer transition-colors`}
                                 >
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">

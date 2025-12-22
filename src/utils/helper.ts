@@ -1,20 +1,12 @@
 import { LeafMeta, ValidatorLeafNodeAggregatedData } from "src/types";
 
 export const getCountryFlag = (countryCode: string): string => {
-    const flags: { [key: string]: string } = {
-        'US': '🇺🇸',
-        'GB': '🇬🇧',
-        'DE': '🇩🇪',
-        'JP': '🇯🇵',
-        'SG': '🇸🇬',
-        'AU': '🇦🇺',
-        'CA': '🇨🇦',
-        'FR': '🇫🇷',
-        'BR': '🇧🇷',
-        'IN': '🇮🇳'
-    };
-    return flags[countryCode] || '🌍';
-}
+    if (!countryCode || countryCode.length !== 2) return '🌍';
+    const codePoints = [...countryCode.toUpperCase()].map(
+        c => 0x1F1E6 + c.charCodeAt(0) - 65
+    );
+    return String.fromCodePoint(...codePoints);
+};
 
 export const aggregateLeafData = (leafMetas: LeafMeta[]): ValidatorLeafNodeAggregatedData => {
     const operators = leafMetas.length;
@@ -43,6 +35,7 @@ export const aggregateLeafData = (leafMetas: LeafMeta[]): ValidatorLeafNodeAggre
     const sortedByCredit = [...leavesWithCredits].sort((a, b) => (b.credit || 0) - (a.credit || 0));
     const top_credit_providers = sortedByCredit.slice(0, 3).map((leaf, index) => ({
         pubkey: leaf.pubkey,
+        address: leaf.address.endpoint,
         credit: leaf.credit || 0,
         rank: index + 1
     }));

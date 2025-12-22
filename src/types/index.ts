@@ -35,7 +35,7 @@ export interface ValidatorLeafNodeAggregatedData {
     average_credits_per_pod: number;
     max_credits: number;
     min_credits: number;
-    top_credit_providers: Array<{ pubkey: string; credit: number; rank: number }>; // Top 3 by credits
+    top_credit_providers: Array<{ pubkey: string; address: string; credit: number; rank: number }>; // Top 3 by credits
     // Country distribution
     country_distribution: { country: string; count: number; flag: string }[];
     credit_distribution_by_country: { country: string; credits: number; flag: string; avg_per_pod: number }[];

@@ -29,6 +29,7 @@ export function aggregateLeafData(leaves: LeafMeta[]): ValidatorLeafNodeAggregat
         .slice(0, 3)
         .map((leaf, index) => ({
             pubkey: leaf.pubkey,
+            address: leaf.address.endpoint,
             credit: leaf.credit || 0,
             rank: index + 1 // 1, 2, 3
         }));

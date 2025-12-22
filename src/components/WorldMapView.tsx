@@ -60,6 +60,21 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
             stroke: am5.color(isDark ? 0x1a202c : 0xffffff),
             strokeWidth: 0.5,
         });
+        polygonSeries.mapPolygons.template.events.on('click', (ev) => {
+            const geo = (ev.target.dataItem?.dataContext as any)?.geometry;
+            if (geo && geo.type === "Polygon" && geo.coordinates?.[0]?.[0]) {
+                // Calculate centroid of the polygon
+                const coords = geo.coordinates[0];
+                let lat = 0, lon = 0;
+                coords.forEach(([lng, lt]: [number, number]) => {
+                    lat += lt;
+                    lon += lng;
+                });
+                lat /= coords.length;
+                lon /= coords.length;
+                chart.zoomToGeoPoint({ latitude: lat, longitude: lon }, 2, true, 1000);
+            }
+        });
 
         const polygonTemplate = polygonSeries.mapPolygons.template;
         polygonTemplate.states.create('hover', {
@@ -127,7 +142,7 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
                 loops: Infinity,
             });
 
-            // Add interactivity to the circle
+            // Only highlight and show sidebar on hover
             circle.events.on('pointerover', (e) => {
                 const data = dataItem.dataContext as any;
                 if (data && data.nodes && data.nodes.length > 0) {
@@ -137,17 +152,23 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
                 circle.set('radius', 10);
             });
 
-            circle.events.on('pointerover', (e) => {
-                const data = dataItem.dataContext as any;
-                if (data) {
-                    circle.set('fill', am5.color(data.color || 0x9945ff));
-                    circle.set('radius', 10);
-                }
-            });
-
             circle.events.on('pointerout', () => {
                 circle.set('fill', am5.color(0x9945ff));
                 circle.set('radius', 6);
+            });
+
+            // Animate globe and update sidebar on click
+            circle.events.on('click', (e) => {
+                const data = dataItem.dataContext as any;
+                if (data && data.nodes && data.nodes.length > 0) {
+                    onLeafHover(data.nodes[0]);
+                    chart.zoomToGeoPoint(
+                        { latitude: data.latitude, longitude: data.longitude },
+                        3, // zoom level
+                        true, // animate
+                        800 // duration ms
+                    );
+                }
             });
 
             return am5.Bullet.new(root, {

@@ -6,7 +6,7 @@ import { TableView } from './components/TableView';
 import { WorldMapView } from './components/WorldMapView';
 import { ViewToggle } from './components/ToggleView';
 import { ApiDataIntegrator } from './components/ApiDataIntegrator';
-import { aggregateLeafData } from './utils/dataGenerator';
+import { aggregateLeafData } from './utils/aggregator';
 
 
 export default function SolanaNetworkTopology() {
@@ -70,7 +70,7 @@ export default function SolanaNetworkTopology() {
             // Multiple nodes with the same credit get the same rank
             let currentRank = 1;
             let previousCredit: number | undefined = undefined;
-            const topProviders: Array<{ pubkey: string; credit: number; rank: number }> = [];
+            const topProviders: Array<{ pubkey: string, address: string; credit: number; rank: number }> = [];
             
             sortedByCredit.forEach((leaf, index) => {
                 const currentCredit = leaf.credit || 0;
@@ -85,6 +85,7 @@ export default function SolanaNetworkTopology() {
                     leaf.credit_rank = currentRank;
                     topProviders.push({
                         pubkey: leaf.pubkey,
+                        address: leaf.address.endpoint,
                         credit: currentCredit,
                         rank: currentRank
                     });
@@ -122,7 +123,7 @@ export default function SolanaNetworkTopology() {
         if (leaf && (view === 'table' || view === 'world') && globalAggregatedData) {
             // Find this leaf in the global top 3 to ensure it has the correct rank
             const topProvider = globalAggregatedData.top_credit_providers.find(
-                provider => provider.pubkey === leaf.pubkey
+                provider => provider.address === leaf.address.endpoint
             );
             
             if (topProvider) {

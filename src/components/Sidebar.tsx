@@ -2,7 +2,7 @@ import React from 'react';
 import * as d3 from 'd3';
 import { Validator, LeafMeta, ValidatorLeafNodeAggregatedData, RootNode } from '../types';
 import { validators } from '../data/validators';
-import { shortenName, formatBytes, formatNumber, formatUptime } from '../utils/helper';
+import { shortenName, formatBytes, formatNumber, formatUptime, getCountryFlag } from '../utils/helper';
 
 interface SidebarProps {
     isDark: boolean;
@@ -285,7 +285,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <div className="flex items-start gap-3 mb-3">
-                                            <div className="text-3xl">🌍</div>
+                                            <div className="text-3xl">{getCountryFlag(hoveredLeaf.address.ip_info.countryCode)}</div>
                                             <div className="flex-1">
                                                 <div className={`text-base font-bold ${textColor} mb-1`}>
                                                     {hoveredLeaf.address.ip_info.countryName}
@@ -440,7 +440,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                                                 return (
                                                     <div
-                                                        key={provider.pubkey}
+                                                        key={provider.address}
                                                         className={`${style.bg} ${style.glow} p-4 rounded-xl border backdrop-blur-sm transition-all hover:scale-102`}
                                                     >
                                                         <div className="flex items-center gap-3">
