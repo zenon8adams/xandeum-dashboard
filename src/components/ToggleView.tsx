@@ -2,8 +2,8 @@ import React from 'react';
 
 interface ViewToggleProps {
     isDark: boolean;
-    view: 'network' | 'table';
-    onToggle: (view: 'network' | 'table') => void;
+    view: 'network' | 'table' | 'world';
+    onToggle: (view: 'network' | 'table' | 'world') => void;
 }
 
 export const ViewToggle: React.FC<ViewToggleProps> = ({ isDark, view, onToggle }) => {
@@ -35,6 +35,25 @@ export const ViewToggle: React.FC<ViewToggleProps> = ({ isDark, view, onToggle }
                         <line x1="14.83" y1="9.17" x2="19.07" y2="4.93" />
                     </svg>
                     <span className="hidden sm:inline">Network</span>
+                </button>
+                <button
+                    onClick={() => onToggle('world')}
+                    className={`${
+                        view === 'world'
+                            ? isDark
+                                ? 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white shadow-lg'
+                                : 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white shadow-lg'
+                            : isDark
+                            ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    } px-6 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2`}
+                >
+                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M2 12h20" />
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
+                    <span className="hidden sm:inline">World</span>
                 </button>
                 <button
                     onClick={() => onToggle('table')}

@@ -3,6 +3,7 @@ import { Validator, LeafMeta, ValidatorLeafNodeAggregatedData } from './types';
 import { NetworkGraph } from './components/NetworkGraph';
 import { Sidebar } from './components/Sidebar';
 import { TableView } from './components/TableView';
+import { WorldMapView } from './components/WorldMapView';
 import { ViewToggle } from './components/ToggleView';
 import { ApiDataIntegrator } from './components/ApiDataIntegrator';
 import { aggregateLeafData } from './utils/dataGenerator';
@@ -21,7 +22,7 @@ export default function SolanaNetworkTopology() {
         total_credits?: number;
     } | undefined>(undefined);
     const [isDark, setIsDark] = useState(false);
-    const [view, setView] = useState<'network' | 'table'>('network');
+    const [view, setView] = useState<'network' | 'table' | 'world'>('network');
     const [allLeaves, setAllLeaves] = useState<LeafMeta[]>([]);
     const [apiLeaves, setApiLeaves] = useState<LeafMeta[]>([]);
     const [globalAggregatedData, setGlobalAggregatedData] = useState<ValidatorLeafNodeAggregatedData | undefined>(undefined);
@@ -118,7 +119,7 @@ export default function SolanaNetworkTopology() {
     }, []);
 
     const handleLeafHoverInTable = useCallback((leaf: LeafMeta | null) => {
-        if (leaf && view === 'table' && globalAggregatedData) {
+        if (leaf && (view === 'table' || view === 'world') && globalAggregatedData) {
             // Find this leaf in the global top 3 to ensure it has the correct rank
             const topProvider = globalAggregatedData.top_credit_providers.find(
                 provider => provider.pubkey === leaf.pubkey
@@ -134,7 +135,7 @@ export default function SolanaNetworkTopology() {
         }
         
         setHoveredLeaf(leaf);
-        if (view === 'table') {
+        if (view === 'table' || view === 'world') {
             setHoveredValidator(null);
             setHoveredValidatorData(undefined);
         }
@@ -142,8 +143,8 @@ export default function SolanaNetworkTopology() {
 
     // Get the appropriate validator data based on view mode
     const getValidatorDataForSidebar = () => {
-        if (view === 'table' && !hoveredValidator && !hoveredLeaf) {
-            // In table view with no specific selection, show global data
+        if ((view === 'table' || view === 'world') && !hoveredValidator && !hoveredLeaf) {
+            // In table or world view with no specific selection, show global data
             return globalAggregatedData;
         }
         return hoveredValidatorData;
@@ -170,6 +171,13 @@ export default function SolanaNetworkTopology() {
                     onLeavesGenerated={handleLeavesGenerated}
                     externalLeafData={apiLeaves}
                 />
+            ) : view === 'world' ? (
+                <WorldMapView
+                    isDark={isDark}
+                    allLeaves={allLeaves}
+                    onLeafHover={handleLeafHoverInTable}
+                    selectedLeaf={hoveredLeaf}
+                />
             ) : (
                 <TableView
                     isDark={isDark}
@@ -177,7 +185,7 @@ export default function SolanaNetworkTopology() {
                     onLeafHover={handleLeafHoverInTable}
                     selectedLeaf={hoveredLeaf}
                 />
-            )}
+            )} 
             
             <Sidebar 
                 isDark={isDark}

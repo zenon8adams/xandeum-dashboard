@@ -459,7 +459,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
                 if (d.leafMeta.credit_rank === 2) return '#C0C0C0'; // Silver
                 if (d.leafMeta.credit_rank === 3) return '#CD7F32'; // Bronze
                 // Regular colors based on status
-                if (d.leafMeta.is_accessible && d.leafMeta.last_seen) return '#10B981'; // Green for online
+                if (d.leafMeta.is_online) return '#10B981'; // Green for online
                 if (d.leafMeta.is_accessible) return '#3B82F6'; // Blue for accessible
                 return '#6B7280'; // Gray for offline
             })

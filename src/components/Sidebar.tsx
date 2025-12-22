@@ -165,8 +165,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                         <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
                                         Provider
                                     </span>
-                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${hoveredLeaf.is_accessible && hoveredLeaf.last_seen ? 'bg-green-500/20 text-green-600 dark:text-green-300 border border-green-500/30' : 'bg-red-500/20 text-red-600 dark:text-red-300 border border-red-500/30'}`}>
-                                        {hoveredLeaf.is_accessible && hoveredLeaf.last_seen ? 'Online' : 'Offline'}
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${hoveredLeaf.is_online ? 'bg-green-500/20 text-green-600 dark:text-green-300 border border-green-500/30' : 'bg-red-500/20 text-red-600 dark:text-red-300 border border-red-500/30'}`}>
+                                        {hoveredLeaf.is_online ? 'Online' : 'Offline'}
                                     </span>
                                     {hoveredLeaf.is_accessible && (
                                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border border-cyan-500/30">

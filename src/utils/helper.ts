@@ -24,7 +24,7 @@ export const aggregateLeafData = (leafMetas: LeafMeta[]): ValidatorLeafNodeAggre
     const utilization_rate = total_storage_committed > 0 ? (total_storage_used / total_storage_committed) * 100 : 0;
 
     // Status counts
-    const online_count = leafMetas.filter(l => l.is_accessible && l.last_seen).length;
+    const online_count = leafMetas.filter(l => l.is_online).length;
     const offline_count = operators - online_count;
     const public_count = leafMetas.filter(l => l.is_public).length;
     const private_count = operators - public_count;
