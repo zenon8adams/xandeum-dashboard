@@ -15,6 +15,10 @@ export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafH
     const [sortBy, setSortBy] = useState<'credit' | 'storage' | 'uptime' | 'pubkey' | 'last_seen'>('credit');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [searchQuery, setSearchQuery] = useState('');
+    const [showOnline, setShowOnline] = useState(false);
+    const [showAccessible, setShowAccessible] = useState(false);
+    const [showPublic, setShowPublic] = useState(false);
+
     const observerTarget = useRef<HTMLDivElement>(null);
     const ITEMS_PER_PAGE = 50;
 
@@ -27,6 +31,16 @@ export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafH
 
     const filteredAndSortedLeaves = React.useMemo(() => {
         let filtered = allLeaves;
+
+        if (showOnline) {
+            filtered = filtered.filter(l => l.is_online);
+        }
+        if (showAccessible) {
+            filtered = filtered.filter(l => l.is_accessible);
+        }
+        if (showPublic) {
+            filtered = filtered.filter(l => l.is_public);
+        }
 
         // Apply search filter
         if (searchQuery) {
@@ -77,7 +91,7 @@ export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafH
         });
 
         return sorted;
-    }, [allLeaves, searchQuery, sortBy, sortOrder]);
+    }, [allLeaves, searchQuery, sortBy, sortOrder, showOnline, showAccessible, showPublic]);
 
     useEffect(() => {
         setDisplayedLeaves(filteredAndSortedLeaves.slice(0, ITEMS_PER_PAGE));
@@ -140,8 +154,8 @@ export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafH
         if (!rank) return null;
         return (
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${rank === 1 ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white' :
-                    rank === 2 ? 'bg-gradient-to-r from-gray-400 to-gray-500 text-white' :
-                        'bg-gradient-to-r from-orange-700 to-orange-800 text-white'
+                rank === 2 ? 'bg-gradient-to-r from-gray-400 to-gray-500 text-white' :
+                    'bg-gradient-to-r from-orange-700 to-orange-800 text-white'
                 }`}>
                 #{rank}
             </span>
@@ -179,20 +193,44 @@ export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafH
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-100'} px-4 py-2 rounded-lg`}>
-                            <div className={`text-xs ${textSecondary} mb-1`}>Total Online</div>
+                        {/* Online Card */}
+                        <div
+                            className={`px-4 py-2 rounded-lg cursor-pointer transition border-2 ${isDark ? 'bg-gray-700/50 border-green-700/40' : 'bg-gray-100 border-green-300/40'} ${showOnline ? 'ring-2 ring-green-500 border-green-500' : ''}`}
+                            onClick={() => setShowOnline(v => !v)}
+                            title="Show only online nodes"
+                        >
+                            <div className={`text-xs ${textSecondary} mb-1 flex items-center gap-2`}>
+                                <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
+                                Total Online
+                            </div>
                             <div className={`text-xl font-bold text-green-600 dark:text-green-400`}>
                                 {allLeaves.filter(l => l.is_online).length}
                             </div>
                         </div>
-                        <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-100'} px-4 py-2 rounded-lg`}>
-                            <div className={`text-xs ${textSecondary} mb-1`}>Accessible</div>
-                            <div className={`text-xl font-bold text-blue-600 dark:text-blue-400`}>
+                        {/* Accessible Card */}
+                        <div
+                            className={`px-4 py-2 rounded-lg cursor-pointer transition border-2 ${isDark ? 'bg-gray-700/50 border-cyan-700/40' : 'bg-gray-100 border-cyan-300/40'} ${showAccessible ? 'ring-2 ring-cyan-500 border-cyan-500' : ''}`}
+                            onClick={() => setShowAccessible(v => !v)}
+                            title="Show only accessible nodes"
+                        >
+                            <div className={`text-xs ${textSecondary} mb-1 flex items-center gap-2`}>
+                                <span className="w-2 h-2 rounded-full bg-cyan-500 inline-block" />
+                                Accessible
+                            </div>
+                            <div className={`text-xl font-bold text-cyan-600 dark:text-cyan-400`}>
                                 {allLeaves.filter(l => l.is_accessible).length}
                             </div>
                         </div>
-                        <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-100'} px-4 py-2 rounded-lg`}>
-                            <div className={`text-xs ${textSecondary} mb-1`}>Public Nodes</div>
+                        {/* Public Nodes Card */}
+                        <div
+                            className={`px-4 py-2 rounded-lg cursor-pointer transition border-2 ${isDark ? 'bg-gray-700/50 border-purple-700/40' : 'bg-gray-100 border-purple-300/40'} ${showPublic ? 'ring-2 ring-purple-500 border-purple-500' : ''}`}
+                            onClick={() => setShowPublic(v => !v)}
+                            title="Show only public nodes"
+                        >
+                            <div className={`text-xs ${textSecondary} mb-1 flex items-center gap-2`}>
+                                <span className="w-2 h-2 rounded-full bg-purple-500 inline-block" />
+                                Public Nodes
+                            </div>
                             <div className={`text-xl font-bold text-purple-600 dark:text-purple-400`}>
                                 {allLeaves.filter(l => l.is_public).length}
                             </div>

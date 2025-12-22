@@ -295,7 +295,7 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
             <div ref={chartRef} style={{ width: '100%', height: '100%' }} />
 
             {/* Legend */}
-            <div className={`absolute top-[16rem] left-8 ${isDark ? 'bg-gray-900/90' : 'bg-white/90'} backdrop-blur-xl rounded-xl p-4 shadow-lg border ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+            <div className={`absolute top-[20rem] left-8 ${isDark ? 'bg-gray-900/90' : 'bg-white/90'} backdrop-blur-xl rounded-xl p-4 shadow-lg border ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
                 <h3 className={`text-sm font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
                     Node Distribution
                 </h3>
@@ -344,6 +344,14 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
                         </div>
                         <div className="text-2xl font-bold text-green-500">
                             {allLeaves.filter((l) => l.is_online).length}
+                        </div>
+                    </div>
+                    <div>
+                        <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'} mb-1`}>
+                            Accessible Nodes
+                        </div>
+                        <div className="text-2xl font-bold text-cyan-500">
+                            {allLeaves.filter((l) => l.is_accessible).length}
                         </div>
                     </div>
                     <div>
