@@ -173,7 +173,7 @@ export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafH
             <div className={`${cardBg} border-b ${border} backdrop-blur-xl p-6`}>
                 <div className="flex items-center justify-between mb-4">
                     <div>
-                        <h2 className={`text-2xl font-bold ${textColor} mb-1`}>Provider Directory</h2>
+                        <h2 className={`text-2xl font-bold ${textColor} mb-1`}>Xandeum Provider Nodes</h2>
                         <p className={textSecondary}>
                             Showing {displayedLeaves.length} of {filteredAndSortedLeaves.length} providers
                         </p>
