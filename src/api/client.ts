@@ -40,3 +40,15 @@ export async function fetchLeafNodes(): Promise<LeafMetaData[]> {
 export async function fetchAllLeafNodes(): Promise<LeafMetaData[]> {
   return await fetchLeafNodes();
 }
+
+/**
+ * query information about node
+ */
+export async function queryNode(arg: string, endpoint: string) {
+    const response = await apiClient.get(`/pnode/run-command/${arg}?endpoint=${endpoint}`);
+    if (response.status !== 200) {
+        throw new Error(`Error: Request failed with status ${response.status}`);
+    }
+
+    return response.data;
+}
