@@ -18,6 +18,7 @@ interface NetworkGraphProps {
     } | undefined>>;
     onLeavesGenerated: (leaves: LeafMeta[]) => void;
     externalLeafData?: LeafMeta[];
+    highlightEndpoints?: string[];
 }
 
 export const NetworkGraph: React.FC<NetworkGraphProps> = ({
@@ -26,7 +27,8 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
     onLeafHover,
     onRootDataCalculated,
     onLeavesGenerated,
-    externalLeafData
+    externalLeafData,
+    highlightEndpoints
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const svgRef = useRef<SVGSVGElement>(null);
@@ -90,13 +92,13 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
         let maxValidatorStorage = -Infinity;
         let minLeafStorage = Infinity;
         let maxLeafStorage = -Infinity;
-        
+
         validatorLeafMap.forEach((validatorLeaves) => {
             const aggregatedData = aggregateLeafData(validatorLeaves);
             const storageSize = aggregatedData.total_storage_committed;
             minValidatorStorage = Math.min(minValidatorStorage, storageSize);
             maxValidatorStorage = Math.max(maxValidatorStorage, storageSize);
-            
+
             // Calculate min/max for leaf nodes
             validatorLeaves.forEach((leaf) => {
                 minLeafStorage = Math.min(minLeafStorage, leaf.storage_committed);
@@ -108,7 +110,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
             minValidatorStorage = 2000;
             maxValidatorStorage = 20000;
         }
-        
+
         if (minLeafStorage === Infinity || maxLeafStorage === -Infinity || minLeafStorage === maxLeafStorage) {
             minLeafStorage = 50;
             maxLeafStorage = 550;
@@ -142,7 +144,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
                 aggregatedData
             };
             nodes.push(validatorNode);
-            validatorNodes.push(validatorNode); 
+            validatorNodes.push(validatorNode);
             links.push({ source: 'ROOT', target: clusterId, type: 'primary' });
 
             const leafCount = validatorLeaves.length;
@@ -505,6 +507,44 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
             .select('.leaf-box')
             .style('animation', 'pulse 2s ease-in-out infinite');
 
+        leafGroup.selectAll('.leaf-box')
+            .attr('stroke', function (d: NodeData) {
+                // Highlight if endpoint matches
+                if (
+                    d.leafMeta &&
+                    highlightEndpoints.includes(d.leafMeta.address.endpoint)
+                ) {
+                    return '#FF00A8'; // Special highlight color
+                }
+                // ...existing stroke logic...
+                if (d.leafMeta?.credit_rank === 1) return '#FFA500';
+                if (d.leafMeta?.credit_rank === 2) return '#E5E5E5';
+                if (d.leafMeta?.credit_rank === 3) return '#8B4513';
+                return 'none';
+            })
+            .attr('stroke-width', function (d: NodeData) {
+                if (
+                    d.leafMeta &&
+                    highlightEndpoints.includes(d.leafMeta.address.endpoint)
+                ) {
+                    return 4; // Thicker border for highlight
+                }
+                return d.leafMeta?.credit_rank ? 2 : 0;
+            })
+            .style('filter', function (d: NodeData) {
+                if (
+                    d.leafMeta &&
+                    highlightEndpoints.includes(d.leafMeta.address.endpoint)
+                ) {
+                    return 'drop-shadow(0 0 12px #FF00A8)';
+                }
+                
+                if (d.leafMeta?.credit_rank === 1) return 'drop-shadow(0 0 8px #FFD700)';
+                if (d.leafMeta?.credit_rank === 2) return 'drop-shadow(0 0 6px #C0C0C0)';
+                if (d.leafMeta?.credit_rank === 3) return 'drop-shadow(0 0 4px #CD7F32)';
+                return 'none';
+            });
+
         // Center node
         const centerGroup = node.filter((d) => d.type === 'center');
         centerGroup.raise();
@@ -751,7 +791,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
         return () => {
             simulation.stop();
         };
-    }, [isDark, onValidatorHover, onLeafHover, externalLeafData]);
+    }, [isDark, onValidatorHover, onLeafHover, externalLeafData, highlightEndpoints]);
 
     const bgClass = isDark
         ? 'bg-gradient-to-br from-[#0a0e1a] via-[#0f1420] to-[#1a0f2e]'

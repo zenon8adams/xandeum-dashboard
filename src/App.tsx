@@ -7,6 +7,7 @@ import { WorldMapView } from './components/WorldMapView';
 import { ViewToggle } from './components/ToggleView';
 import { ApiDataIntegrator } from './components/ApiDataIntegrator';
 import { aggregateLeafData } from './utils/aggregator';
+import { smartQuery } from './api/client';
 
 
 export default function SolanaNetworkTopology() {
@@ -26,6 +27,9 @@ export default function SolanaNetworkTopology() {
     const [allLeaves, setAllLeaves] = useState<LeafMeta[]>([]);
     const [apiLeaves, setApiLeaves] = useState<LeafMeta[]>([]);
     const [globalAggregatedData, setGlobalAggregatedData] = useState<ValidatorLeafNodeAggregatedData | undefined>(undefined);
+    const [searchResults, setSearchResults] = useState<string[]>([]);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [searchError, setSearchError] = useState<string | null>(null);
 
     useEffect(() => {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -48,38 +52,38 @@ export default function SolanaNetworkTopology() {
                     // First, prioritize nodes that already have a credit_rank
                     const aHasRank = a.credit_rank !== undefined;
                     const bHasRank = b.credit_rank !== undefined;
-                    
+
                     if (aHasRank && !bHasRank) return -1;
                     if (!aHasRank && bHasRank) return 1;
-                    
+
                     // If both have ranks, sort by rank value
                     if (aHasRank && bHasRank) {
                         return (a.credit_rank || 0) - (b.credit_rank || 0);
                     }
-                    
+
                     // Otherwise, sort by credit amount descending
                     return (b.credit || 0) - (a.credit || 0);
                 });
-            
+
             // Clear all existing ranks first
             allLeaves.forEach(leaf => {
                 delete leaf.credit_rank;
             });
-            
+
             // Assign ranks based on credit scores, handling ties
             // Multiple nodes with the same credit get the same rank
             let currentRank = 1;
             let previousCredit: number | undefined = undefined;
             const topProviders: Array<{ pubkey: string, address: string; credit: number; rank: number }> = [];
-            
+
             sortedByCredit.forEach((leaf, index) => {
                 const currentCredit = leaf.credit || 0;
-                
+
                 // If credit is different from previous, update rank based on position
                 if (previousCredit !== undefined && currentCredit < previousCredit) {
                     currentRank = index + 1; // Move to next rank position
                 }
-                
+
                 // Only assign ranks 1, 2, or 3
                 if (currentRank <= 3) {
                     leaf.credit_rank = currentRank;
@@ -90,9 +94,9 @@ export default function SolanaNetworkTopology() {
                         rank: currentRank
                     });
                 }
-                
+
                 previousCredit = currentCredit;
-                
+
                 // Stop if we've passed rank 3
                 if (currentRank > 3) {
                     return;
@@ -119,13 +123,31 @@ export default function SolanaNetworkTopology() {
         setAllLeaves(leaves);
     }, []);
 
+    const handleSmartSearch = async (prompt: string) => {
+        setSearchLoading(true);
+        setSearchError(null);
+        try {
+            const endpoints = await smartQuery(prompt);
+            setSearchResults(endpoints);
+        } catch (err: any) {
+            setSearchError(err.message || 'Search failed');
+            setSearchResults([]);
+        } finally {
+            setSearchLoading(false);
+        }
+    };
+
+    const handleClearSearchResults = () => {
+        setSearchResults([]);
+    };
+
     const handleLeafHoverInTable = useCallback((leaf: LeafMeta | null) => {
         if (leaf && (view === 'table' || view === 'world') && globalAggregatedData) {
             // Find this leaf in the global top 3 to ensure it has the correct rank
             const topProvider = globalAggregatedData.top_credit_providers.find(
                 provider => provider.address === leaf.address.endpoint
             );
-            
+
             if (topProvider) {
                 // Update the leaf with global rank
                 leaf.credit_rank = topProvider.rank;
@@ -134,7 +156,7 @@ export default function SolanaNetworkTopology() {
                 delete leaf.credit_rank;
             }
         }
-        
+
         setHoveredLeaf(leaf);
         if (view === 'table' || view === 'world') {
             setHoveredValidator(null);
@@ -162,15 +184,16 @@ export default function SolanaNetworkTopology() {
                 onLeavesGenerated={handleApiLeavesGenerated}
                 onRootDataCalculated={setRootData}
             />
-            
+
             {view === 'network' ? (
-                <NetworkGraph 
+                <NetworkGraph
                     isDark={isDark}
                     onValidatorHover={handleValidatorHover}
                     onLeafHover={setHoveredLeaf}
                     onRootDataCalculated={setRootData}
                     onLeavesGenerated={handleLeavesGenerated}
                     externalLeafData={apiLeaves}
+                    highlightEndpoints={searchResults}
                 />
             ) : view === 'world' ? (
                 <WorldMapView
@@ -178,6 +201,7 @@ export default function SolanaNetworkTopology() {
                     allLeaves={allLeaves}
                     onLeafHover={handleLeafHoverInTable}
                     selectedLeaf={hoveredLeaf}
+                    highlightEndpoints={searchResults}
                 />
             ) : (
                 <TableView
@@ -185,16 +209,22 @@ export default function SolanaNetworkTopology() {
                     allLeaves={allLeaves}
                     onLeafHover={handleLeafHoverInTable}
                     selectedLeaf={hoveredLeaf}
+                    filterEndpoints={searchResults}
                 />
-            )} 
-            
-            <Sidebar 
+            )}
+
+            <Sidebar
                 isDark={isDark}
                 hoveredValidator={hoveredValidator}
                 hoveredValidatorData={getValidatorDataForSidebar()}
                 hoveredLeaf={hoveredLeaf}
                 rootData={rootData}
                 onThemeToggle={handleThemeToggle}
+                onSmartSearch={handleSmartSearch}
+                onClearSearchResults={handleClearSearchResults}
+                searchResults={searchResults}
+                searchLoading={searchLoading}
+                searchError={searchError}
             />
 
             <ViewToggle

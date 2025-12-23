@@ -7,9 +7,10 @@ interface TableViewProps {
     allLeaves: LeafMeta[];
     onLeafHover: (leaf: LeafMeta | null) => void;
     selectedLeaf: LeafMeta | null;
+    filterEndpoints?: string[];
 }
 
-export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafHover, selectedLeaf }) => {
+export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafHover, selectedLeaf, filterEndpoints }) => {
     const [displayedLeaves, setDisplayedLeaves] = useState<LeafMeta[]>([]);
     const [page, setPage] = useState(1);
     const [sortBy, setSortBy] = useState<'credit' | 'storage' | 'uptime' | 'pubkey' | 'last_seen'>('credit');
@@ -48,6 +49,10 @@ export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafH
                 leaf.pubkey.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 leaf.address.ip_info?.countryName.toLowerCase().includes(searchQuery.toLowerCase())
             );
+        }
+
+        if(filterEndpoints && filterEndpoints.length > 0) {
+            filtered = filtered.filter(node => filterEndpoints.includes(node.address.endpoint));
         }
 
         // Apply sorting
@@ -91,7 +96,7 @@ export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafH
         });
 
         return sorted;
-    }, [allLeaves, searchQuery, sortBy, sortOrder, showOnline, showAccessible, showPublic]);
+    }, [allLeaves, searchQuery, sortBy, sortOrder, showOnline, showAccessible, showPublic, filterEndpoints]);
 
     useEffect(() => {
         setDisplayedLeaves(filteredAndSortedLeaves.slice(0, ITEMS_PER_PAGE));

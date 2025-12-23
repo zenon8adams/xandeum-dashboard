@@ -1,9 +1,9 @@
 import axios from 'axios';
-import { 
-  RootNodeResponseSchema, 
+import {
+  RootNodeResponseSchema,
   LeafNodesResponseSchema,
   type RootNodeData,
-  type LeafMetaData 
+  type LeafMetaData
 } from './schemas';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -45,10 +45,32 @@ export async function fetchAllLeafNodes(): Promise<LeafMetaData[]> {
  * query information about node
  */
 export async function queryNode(arg: string, endpoint: string) {
-    const response = await apiClient.get(`/pnode/run-command/${arg}?endpoint=${endpoint}`);
-    if (response.status !== 200) {
-        throw new Error(`Error: Request failed with status ${response.status}`);
-    }
+  const response = await apiClient.get(`/pnode/run-command/${arg}?endpoint=${endpoint}`);
+  if (response.status !== 200) {
+    throw new Error(`Error: Request failed with status ${response.status}`);
+  }
 
-    return response.data;
+  return response.data;
+}
+
+/**
+ * Smart query to find best leaf endpoints
+ * @returns {Promise<string[]>} Array of endpoint strings
+ */
+export async function smartQuery(prompt: string): Promise<string[]> {
+  try {
+    const response = await apiClient.post('/pnode/generative/find-best-leaf-endpoint', {
+      prompt
+    });
+    if (response.status !== 200) {
+      throw new Error(`No node found`);
+    }
+    if (response.data.status === 'success' && Array.isArray(response.data.endpoints)) {
+      return response.data.endpoints;
+    } else {
+      throw new Error(`No node found`);
+    }
+  } catch (error) {
+    throw new Error(`No node found`);
+  }
 }

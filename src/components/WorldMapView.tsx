@@ -11,13 +11,16 @@ interface WorldMapViewProps {
     allLeaves: LeafMeta[];
     onLeafHover: (leaf: LeafMeta | null) => void;
     selectedLeaf: LeafMeta | null;
+    highlightEndpoints?: string[];
+
 }
 
 export const WorldMapView: React.FC<WorldMapViewProps> = ({
     isDark,
     allLeaves,
     onLeafHover,
-    selectedLeaf
+    selectedLeaf,
+    highlightEndpoints
 }) => {
     const chartRef = useRef<HTMLDivElement>(null);
     const rootRef = useRef<am5.Root | null>(null);
@@ -120,13 +123,14 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
         pointSeries.bullets.push((root, series, dataItem) => {
             const container = am5.Container.new(root, {});
 
+            const isHighlighted = (dataItem.dataContext as any).isHighlighted;
             const circle = container.children.push(
                 am5.Circle.new(root, {
                     radius: 6,
                     tooltipY: 0,
-                    fill: am5.color(0x9945ff),
-                    strokeWidth: 2,
-                    stroke: am5.color(0xffffff),
+                    fill: am5.color(isHighlighted ? 0xff00a8 : 0x9945ff),
+                    strokeWidth: isHighlighted ? 4 : 2,
+                    stroke: am5.color(isHighlighted ? 0xff00a8 : 0xffffff),
                     tooltipText: '{title}\n{info}',
                     cursorOverStyle: 'pointer',
                 })
@@ -213,6 +217,7 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
                     info: `${leaves.length} nodes\n${onlineCount} online\n${totalCredits.toLocaleString()} credits`,
                     color: validator ? validator.color : '#6B7280',
                     nodes: leaves,
+                    isHighlighted: leaves.some(l => highlightEndpoints.includes(l.address.endpoint)),
                 });
             }
         });
@@ -238,7 +243,7 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
         return () => {
             root.dispose();
         };
-    }, [allLeaves, isDark, onLeafHover]);
+    }, [allLeaves, isDark, onLeafHover, highlightEndpoints]);
 
     // Update colors when theme changes
     useLayoutEffect(() => {
