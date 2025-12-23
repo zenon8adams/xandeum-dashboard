@@ -148,15 +148,15 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
             const leafCount = validatorLeaves.length;
             const minLeafCount = 25;
             const maxLeafCount = 45;
-            const maxDistance = 400;
-            const minDistance = 200;
+            const maxDistance = 250;
+            const minDistance = 180;
             const baseDistance = maxDistance - ((Math.min(leafCount, maxLeafCount) - minLeafCount) / (maxLeafCount - minLeafCount)) * (maxDistance - minDistance);
 
             const minArcSpread = Math.PI / 6;
             const maxArcSpread = Math.PI / 3.5;
             const arcSpread = minArcSpread + ((Math.min(leafCount, maxLeafCount) - minLeafCount) / (maxLeafCount - minLeafCount)) * (maxArcSpread - minArcSpread);
 
-            const numLevels = 4;
+            const numLevels = 6;
             const leavesPerLevel = Math.ceil(leafCount / numLevels);
 
             validatorLeaves.forEach((leafMeta, j) => {
@@ -257,7 +257,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
         const g = svg.append('g');
 
         const zoom = d3.zoom<SVGSVGElement, unknown>()
-            .scaleExtent([0.3, 4])
+            .scaleExtent([0.4, 4])
             .on('zoom', (event) => g.attr('transform', event.transform));
         svg.call(zoom);
 

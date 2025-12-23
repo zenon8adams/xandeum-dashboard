@@ -1,8 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchRootNode, fetchAllLeafNodes } from '../api/client';
-import { getValidatorForVersion } from '../utils/versionBucketing';
-import { validators } from '../data/validators';
-import type { NodeData, LinkData } from '../types';
 
 /**
  * Hook to fetch root node data
@@ -11,8 +8,8 @@ export function useRootNode() {
   return useQuery({
     queryKey: ['rootNode'],
     queryFn: fetchRootNode,
-    staleTime: 30000, // 30 seconds
-    refetchInterval: 60000, // Refetch every minute
+    // staleTime: 30000,
+    refetchInterval: 60000,
   });
 }
 
@@ -23,8 +20,8 @@ export function useLeafNodes() {
   return useQuery({
     queryKey: ['leafNodes'],
     queryFn: fetchAllLeafNodes,
-    staleTime: 30000, // 30 seconds
-    refetchInterval: 60000, // Refetch every minute
+    // staleTime: 30000,
+    refetchInterval: 60000,
   });
 }
 
@@ -40,7 +37,6 @@ export function useNetworkData() {
   const isLoading = isLoadingRoot || isLoadingLeaf;
   const error = rootError || leafError;
 
-  // Return raw data - leafData is already LeafMeta[] which matches the expected format
   return {
     rootData,
     leafData: leafData || [],
