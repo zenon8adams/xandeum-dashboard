@@ -6,9 +6,14 @@ import { useRef } from 'react';
  * Hook to fetch root node data
  */
 export function useRootNode() {
+  const isFirstFetch = useRef(true);
   return useQuery({
     queryKey: ['rootNode'],
-    queryFn: fetchRootNode,
+    queryFn:  async () => {
+      const result = await fetchRootNode(isFirstFetch.current);
+      isFirstFetch.current = false;
+      return result;
+    },
     // staleTime: 30000,
     refetchInterval: 60000,
   });

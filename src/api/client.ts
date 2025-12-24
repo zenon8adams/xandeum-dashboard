@@ -18,9 +18,12 @@ const apiClient = axios.create({
 
 /**
  * Fetch root node data from /pnode/root
+ * @param firstTime Optional flag to indicate first time fetch
  */
-export async function fetchRootNode(): Promise<RootNodeData> {
-  const response = await apiClient.get('/pnode/root');
+export async function fetchRootNode(firstTime?: boolean): Promise<RootNodeData> {
+  const response = await apiClient.get('/pnode/root', {
+    params: { first_time: firstTime ?? false },
+  });
   const validated = RootNodeResponseSchema.parse(response.data);
   return validated.data;
 }
