@@ -156,8 +156,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     />
                                     <button
                                         type="submit"
-                                        className={`ml-2 px-3 py-1 rounded ${isDark ? 'bg-indigo-700 text-white' : 'bg-indigo-100 text-indigo-700'} text-xs font-semibold hover:scale-105 transition-transform`}
-                                        disabled={searchLoading}
+                                        className={`ml-2 px-3 py-1 rounded ${searchValue.trim().length === 0
+                                            ? 'bg-gray-300 text-gray-400 cursor-not-allowed'
+                                            : isDark
+                                                ? 'bg-indigo-700 text-white'
+                                                : 'bg-indigo-100 text-indigo-700'
+                                            } text-xs font-semibold hover:scale-105 transition-transform`}
+                                        disabled={searchLoading || searchValue.trim().length === 0}
                                     >
                                         {searchLoading ? (
                                             <span className="flex items-center gap-1">
@@ -190,7 +195,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             </div>
                             {/* Error message as a dismissible toast below the search bar */}
                             {searchError && (
-                                 <div className="mt-2 text-xs text-red-700  flex items-center gap-2">
+                                <div className="mt-2 text-xs text-red-700  flex items-center gap-2">
                                     <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                         <circle cx="12" cy="12" r="10" />
                                         <path d="M12 8v4m0 4h.01" />

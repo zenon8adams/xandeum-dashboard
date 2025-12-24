@@ -27,18 +27,20 @@ export async function fetchRootNode(): Promise<RootNodeData> {
 
 /**
  * Fetch leaf nodes from /pnode/leaf with pagination
+ * @param firstTime Optional flag to indicate first time fetch
  */
-export async function fetchLeafNodes(): Promise<LeafMetaData[]> {
-  const response = await apiClient.get('/pnode/leaf');
+export async function fetchLeafNodes(firstTime?: boolean): Promise<LeafMetaData[]> {
+  const response = await apiClient.get('/pnode/leaf', {
+    params: { first_time: firstTime ?? false },
+  });
   const validated = LeafNodesResponseSchema.parse(response.data);
   return validated.data.nodes;
 }
-
 /**
  * Fetch all leaf nodes with pagination
  */
-export async function fetchAllLeafNodes(): Promise<LeafMetaData[]> {
-  return await fetchLeafNodes();
+export async function fetchAllLeafNodes(firstTime?: boolean): Promise<LeafMetaData[]> {
+  return await fetchLeafNodes(firstTime);
 }
 
 /**
@@ -66,7 +68,12 @@ export async function smartQuery(prompt: string): Promise<string[]> {
       throw new Error(`No node found`);
     }
     if (response.data.status === 'success' && Array.isArray(response.data.endpoints)) {
-      return response.data.endpoints;
+      const endpoints = response.data.endpoints;
+      if (endpoints.length === 0) {
+        throw new Error(`No node found`);
+      }
+
+      return endpoints;
     } else {
       throw new Error(`No node found`);
     }

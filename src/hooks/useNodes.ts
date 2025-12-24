@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchRootNode, fetchAllLeafNodes } from '../api/client';
+import { useRef } from 'react';
 
 /**
  * Hook to fetch root node data
@@ -17,9 +18,15 @@ export function useRootNode() {
  * Hook to fetch all leaf nodes
  */
 export function useLeafNodes() {
+  const isFirstFetch = useRef(true);
+
   return useQuery({
     queryKey: ['leafNodes'],
-    queryFn: fetchAllLeafNodes,
+    queryFn: async () => {
+      const result = await fetchAllLeafNodes(isFirstFetch.current);
+      isFirstFetch.current = false;
+      return result;
+    },
     // staleTime: 30000,
     refetchInterval: 60000,
   });
