@@ -1,12 +1,19 @@
-## Xandeum Network Dashboard
+<div style="display: flex; align-items: center; justify-content: center; gap: 1rem;">
+    <b style="font-size: 2rem;">Xandeum Analytics Dashboard</b>
+    <img src="./public/assets/xandeum-node.png" 
+             alt="Xandeum logo" 
+             style="width: 60px; height: 60px; border-radius: 100%; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+</div>
 
-**Xandeum Network Dashboard**
+## **Project Overview:**
 
 This is the frontend for the [Xandeum](https://www.xandeum.network/) analytics dashboard, built on top of this [backend repo](https://github.com/zenon8adams/xandeum-network-backend.git).
 
 It’s built with Vite, React, and TypeScript, and focuses on making Xandeum’s network data easy to explore — including provider node (pNode) performance, overall storage and usage, node credits, geographic distribution, and an AI-powered chat for querying network insights.
 
-**Key Features**
+---
+
+### **Key Features**
 
 - **Interactive network view:** A dedicated _Network_ page with a D3-based cluster graph showing pNodes and the versions they’re running.
 - **Table & world views:** Separate pages to explore all pNodes either in a structured table or plotted on a global map.
@@ -14,8 +21,15 @@ It’s built with Vite, React, and TypeScript, and focuses on making Xandeum’s
 - **Sidebar details:** Rich, contextual info for selected nodes, including storage, uptime, location, public endpoint, node status, and credit ranking.
 - **AI-powered chat:** Explore network insights and metrics using simple, natural-language queries.
 
+---
 
-**Quick Start**
+<br/>
+
+  <img src="./public/assets/map.png" alt="Network map" style="display:block;width:100%;height:auto;border-radius:8px;object-fit:cover;box-shadow:0 6px 18px rgba(0,0,0,0.08);" />
+
+---
+
+### **Quick Start**
 
 Prerequisites:
 
@@ -51,7 +65,9 @@ Example `.env`
 VITE_API_BASE_URL=http://localhost:8000/api
 ```
 
-**Important files & folders**
+---
+
+### **Important files & folders**
 
 - **[src/App.tsx](src/App.tsx)**: Main app layout and view switching
 - **[src/index.tsx](src/index.tsx)**: App bootstrap and `QueryProvider`
@@ -76,5 +92,15 @@ VITE_API_BASE_URL=http://localhost:8000/api
 - Unit tests use `vitest`. Run:
 
 ```bash
-npm run test
+yarn run test
 ```
+
+---
+
+## Image layout example ✅
+
+Below is a simple HTML + CSS snippet you can drop into any markdown-rendered page (or a docs page) to display three images from `public/assets/` with the **map** taking the full width on top and the **table** and **graph** sharing the width beneath.
+
+> Note: Files in `public/` are served at the site root. Use `/assets/<name>` as the image `src` (e.g. `/assets/map.png`).
+
+This layout is intentionally minimal and framework-agnostic (works in raw HTML/CSS or in React/MDX). If you'd like, I can provide a Tailwind CSS variant or an accessible, responsive React component for reuse.
