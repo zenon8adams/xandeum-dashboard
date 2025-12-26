@@ -28,7 +28,11 @@ It’s built with Vite, React, and TypeScript, and focuses on making Xandeum’s
 
 <br/>
 
-  <img src="./public/assets/map.png" alt="Network map" style="display:block;width:100%;height:auto;border-radius:8px;object-fit:cover;box-shadow:0 6px 18px rgba(0,0,0,0.08);" />
+### Demo Video
+
+<video src="public/assets/xandeum-demo.mp4" controls width="600">
+  Your browser does not support the video tag.
+</video>
 
 ---
 
@@ -45,7 +49,7 @@ Install and run locally:
 git clone <repo-url>
 cd xandeum-dashboard
 # install
-npm install
+yarn install
 
 # create .env (see below)
 # development
@@ -68,16 +72,6 @@ VITE_API_BASE_URL=http://localhost:8000/api
 
 ---
 
-### **Important files & folders**
-
-- **[src/App.tsx](src/App.tsx)**: Main app layout and view switching
-- **[src/index.tsx](src/index.tsx)**: App bootstrap and `QueryProvider`
-- **[src/components/NetworkGraph.tsx](src/components/NetworkGraph.tsx)**: D3 network visualization
-- **[src/components/Sidebar.tsx](src/components/Sidebar.tsx)**: Node details, charts and AI search UI
-- **[src/components/ApiDataIntegrator.tsx](src/components/ApiDataIntegrator.tsx)**: Bridges react-query data to app
-- **[src/hooks/useNodes.ts](src/hooks/useNodes.ts)**: React Query hooks for root and leaf nodes
-- **[src/api/client.ts](src/api/client.ts)**: Axios client + API helpers + `smartQuery`
-- **[src/utils](src/utils)**: helpers, aggregation, IP utils, formatting
 
 **Environment & Configuration**
 
@@ -87,3 +81,40 @@ VITE_API_BASE_URL=http://localhost:8000/api
 
 - Data polling intervals are configured in `src/hooks/useNodes.ts` (currently refetch interval 60s).
 - The network graph computes layout client-side (D3) using aggregated data provided by the API.
+
+## Docs
+
+### Network View
+The Network View arranges nodes in a dynamic graph. The parent nodes represent major release versions, and the leaves attached to each parent represent nodes running minor or exact versions for that release. This visualization helps you understand the structure and distribution of nodes across different software versions.
+
+![Network View Example](public/assets/network-view.png)
+
+### Sidebar
+The sidebar displays detailed information about a node. Hovering over any node in the network graph will show its information in the sidebar, including version, status, and other metadata.
+
+### World View
+The World View displays nodes on a map, grouped by their closest known geographic location. This helps visualize the global distribution of nodes and identify regional clusters or outliers.
+
+![Table View Example](public/assets/map-view.png)
+
+### Table View
+The Table View presents all node information in a sortable, filterable tabular format. This is useful for searching, comparing, and exporting node data.
+
+![Table View Example](public/assets/table-view.png)
+
+### Console (Terminal View)
+The console allows users to connect to accessible nodes and run commands. Pressing the help button in the terminal will show all supported commands. Currently supported commands include:
+- `get-version`
+- `get-stats`
+- `get-pods-with-stats`
+- `get-pods`
+
+![Terminal View Example](public/assets/terminal.png)
+
+### AI Search
+AI search is deeply integrated into the application. You can search for nodes or prompt for information in any view, and the results will propagate to all other views. This allows for seamless, intelligent exploration and analysis of the network.
+
+![AI Search Example](public/assets/ai-search.png)
+
+### Accessible Nodes
+Nodes that are public should be world-accessible, but some may be blocked by firewalls. The application maintains an index of accessible nodes and highlights them. Users can connect to these nodes through the terminal for direct interaction.
