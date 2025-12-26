@@ -1,70 +1,89 @@
-# GitHub Codespaces ♥️ React
+<div align="center">
+  <h1>
+    <b>Xandeum Analytics Dashboard</b>
+    <img src="./public/assets/xandeum-node.png" 
+         alt="Xandeum logo" 
+         width="60" 
+         height="60">
+  </h1>
+</div>
 
-Welcome to your shiny new Codespace running React! We've got everything fired up and running for you to explore React.
+## **Project Overview:**
 
-You've got a blank canvas to work on from a git perspective as well. There's a single initial commit with the what you're seeing right now - where you go from here is up to you!
+This is the frontend for the [Xandeum](https://www.xandeum.network/) analytics dashboard, built on top of this [backend repo](https://github.com/zenon8adams/xandeum-network-backend.git).
 
-Everything you do here is contained within this one codespace. There is no repository on GitHub yet. If and when you’re ready you can click "Publish Branch" and we’ll create your repository and push up your project. If you were just exploring then and have no further need for this code then you can simply delete your codespace and it's gone forever.
+It’s built with Vite, React, and TypeScript, and focuses on making Xandeum’s network data easy to explore — including provider node (pNode) performance, overall storage and usage, node credits, geographic distribution, and an AI-powered chat for querying network insights.
 
-This project was bootstrapped for you with [Vite](https://vitejs.dev/).
+---
 
-## Available Scripts
+### **Key Features**
 
-In the project directory, you can run:
+- **Interactive network view:** A dedicated _Network_ page with a D3-based cluster graph showing pNodes and the versions they’re running.
+- **Table & world views:** Separate pages to explore all pNodes either in a structured table or plotted on a global map.
+- **Node shell:** An in-app shell that lets you run commands against public pNode endpoints to fetch live stats and status directly from the UI.
+- **Sidebar details:** Rich, contextual info for selected nodes, including storage, uptime, location, public endpoint, node status, and credit ranking.
+- **AI-powered chat:** Explore network insights and metrics using simple, natural-language queries.
 
-### `npm start`
+---
 
-We've already run this for you in the `Codespaces: server` terminal window below. If you need to stop the server for any reason you can just run `npm start` again to bring it back online.
+<br/>
 
-Runs the app in the development mode.\
-Open [http://localhost:3000/](http://localhost:3000/) in the built-in Simple Browser (`Cmd/Ctrl + Shift + P > Simple Browser: Show`) to view your running application.
+  <img src="./public/assets/map.png" alt="Network map" style="display:block;width:100%;height:auto;border-radius:8px;object-fit:cover;box-shadow:0 6px 18px rgba(0,0,0,0.08);" />
 
-The page will reload automatically when you make changes.\
-You may also see any lint errors in the console.
+---
 
-### `npm test`
+### **Quick Start**
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Prerequisites:
 
-### `npm run build`
+- Node.js 18+ (or current LTS)
+- npm or yarn
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Install and run locally:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+git clone <repo-url>
+cd xandeum-dashboard
+# install
+npm install
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+# create .env (see below)
+# development
+yarn start
 
-## Learn More
+# build
+yarn build
 
-You can learn more in the [Vite documentation](https://vitejs.dev/guide/).
+```
 
-To learn Vitest, a Vite-native testing framework, go to [Vitest documentation](https://vitest.dev/guide/)
+Environment
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- The app requires `VITE_API_BASE_URL` to point to the backend API (example below).
 
-### Code Splitting
+Example `.env`
 
-This section has moved here: [https://sambitsahoo.com/blog/vite-code-splitting-that-works.html](https://sambitsahoo.com/blog/vite-code-splitting-that-works.html)
+```env
+VITE_API_BASE_URL=http://localhost:8000/api
+```
 
-### Analyzing the Bundle Size
+---
 
-This section has moved here: [https://github.com/btd/rollup-plugin-visualizer#rollup-plugin-visualizer](https://github.com/btd/rollup-plugin-visualizer#rollup-plugin-visualizer)
+### **Important files & folders**
 
-### Making a Progressive Web App
+- **[src/App.tsx](src/App.tsx)**: Main app layout and view switching
+- **[src/index.tsx](src/index.tsx)**: App bootstrap and `QueryProvider`
+- **[src/components/NetworkGraph.tsx](src/components/NetworkGraph.tsx)**: D3 network visualization
+- **[src/components/Sidebar.tsx](src/components/Sidebar.tsx)**: Node details, charts and AI search UI
+- **[src/components/ApiDataIntegrator.tsx](src/components/ApiDataIntegrator.tsx)**: Bridges react-query data to app
+- **[src/hooks/useNodes.ts](src/hooks/useNodes.ts)**: React Query hooks for root and leaf nodes
+- **[src/api/client.ts](src/api/client.ts)**: Axios client + API helpers + `smartQuery`
+- **[src/utils](src/utils)**: helpers, aggregation, IP utils, formatting
 
-This section has moved here: [https://dev.to/hamdankhan364/simplifying-progressive-web-app-pwa-development-with-vite-a-beginners-guide-38cf](https://dev.to/hamdankhan364/simplifying-progressive-web-app-pwa-development-with-vite-a-beginners-guide-38cf)
+**Environment & Configuration**
 
-### Advanced Configuration
+- The base API URL is read from `import.meta.env.VITE_API_BASE_URL`. Set this in a `.env` file at the repo root before running the dev server.
 
-This section has moved here: [https://vitejs.dev/guide/build.html#advanced-base-options](https://vitejs.dev/guide/build.html#advanced-base-options)
+**Development notes**
 
-### Deployment
-
-This section has moved here: [https://vitejs.dev/guide/build.html](https://vitejs.dev/guide/build.html)
-
-### Troubleshooting
-
-This section has moved here: [https://vitejs.dev/guide/troubleshooting.html](https://vitejs.dev/guide/troubleshooting.html)
+- Data polling intervals are configured in `src/hooks/useNodes.ts` (currently refetch interval 60s).
+- The network graph computes layout client-side (D3) using aggregated data provided by the API.
