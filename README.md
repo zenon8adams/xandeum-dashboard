@@ -87,12 +87,6 @@ VITE_API_BASE_URL=http://localhost:8000/api
 
 - Data polling intervals are configured in `src/hooks/useNodes.ts` (currently refetch interval 60s).
 - The network graph computes layout client-side (D3) using aggregated data provided by the API.
-
-**Testing**
-
-- Unit tests use `vitest`. Run:
-
-```bash
 yarn run test
 ```
 
