@@ -30,10 +30,7 @@ It’s built with Vite, React, and TypeScript, and focuses on making Xandeum’s
 
 ### Demo Video
 
-<video src="public/assets/xandeum-demo.mp4" controls width="600">
-  Your browser does not support the video tag.
-</video>
-
+[![Xandeum Network Demo Video](public/assets/network-view.png)](https://github.com/zenon8adams/xandeum-dashboard/blob/master/public/assets/xandeum-demo.mp4)
 ---
 
 ### **Quick Start**
