@@ -1,11 +1,12 @@
-import { useRef, useEffect, SetStateAction, Dispatch } from 'react';
+import { useRef, useEffect, SetStateAction, Dispatch, useMemo } from 'react';
 import * as d3 from 'd3';
 import { NodeData, LinkData, Validator, LeafMeta, ValidatorLeafNodeAggregatedData, RootNode } from '../types';
 import { validators } from '../data/validators';
-import { aggregateLeafData } from '../utils/helper';
+import { aggregateLeafData, setAutoClearingTimeout } from '../utils/helper';
 
 interface NetworkGraphProps {
     isDark: boolean;
+    isVisible: boolean;
     onValidatorHover: (validator: Validator | null, aggregatedData?: ValidatorLeafNodeAggregatedData) => void;
     onLeafHover: (leaf: LeafMeta | null) => void;
     onRootDataCalculated: Dispatch<SetStateAction<{
@@ -23,18 +24,21 @@ interface NetworkGraphProps {
 
 export const NetworkGraph: React.FC<NetworkGraphProps> = ({
     isDark,
+    isVisible,
     onValidatorHover,
     onLeafHover,
     onRootDataCalculated,
     onLeavesGenerated,
-    externalLeafData,
-    highlightEndpoints
+    externalLeafData = [],
+    highlightEndpoints = []
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const svgRef = useRef<SVGSVGElement>(null);
     const simulationRef = useRef<d3.Simulation<NodeData, LinkData> | null>(null);
+    const nodesRef = useRef<NodeData[]>([]);
+    const linksRef = useRef<LinkData[]>([]);
 
-    const COLORS = {
+    const COLORS = useMemo(() => ({
         bg: isDark ? '#0a0e1a' : '#f8fafc',
         purple: '#9945FF',
         green: '#14F195',
@@ -43,39 +47,41 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
         gray: isDark ? '#E5E7EB' : '#1f2937',
         leafDefault: '#14F195',
         leafGlow: '#00D4FF'
-    };
+    }), [isDark]);
 
-    useEffect(() => {
-        if (!containerRef.current || !svgRef.current) return;
-
-        const width = containerRef.current.offsetWidth;
-        const height = containerRef.current.offsetHeight;
-
-        const nodes: NodeData[] = [];
-        const links: LinkData[] = [];
-        const validatorLeafMap = new Map<string, LeafMeta[]>();
+    // Memoize the validator-leaf mapping
+    const validatorLeafMap = useMemo(() => {
+        const map = new Map<string, LeafMeta[]>();
 
         externalLeafData.forEach((leaf) => {
-            // Find which validator this leaf belongs to based on version
             const matchingValidator = validators.find(v => {
-                // Check if leaf version matches validator version
                 if (leaf.version === v.version) return true;
-                // Check if leaf version starts with validator version (e.g., 0.8.x matches 0.8)
                 const majorMinor = String(leaf.version).match(/^(\d+\.\d+)/)?.[1];
                 if (majorMinor === v.version) return true;
-                // Check for trynet versions
                 if (String(leaf.version).startsWith(v.version)) return true;
                 return false;
             });
 
             const validatorVersion = matchingValidator?.version || 'custom';
-            if (!validatorLeafMap.has(validatorVersion)) {
-                validatorLeafMap.set(validatorVersion, []);
+            if (!map.has(validatorVersion)) {
+                map.set(validatorVersion, []);
             }
-            validatorLeafMap.get(validatorVersion)!.push(leaf);
+            map.get(validatorVersion)!.push(leaf);
         });
-        ``
-        // Center node
+
+        return map;
+    }, [externalLeafData]);
+
+    // Memoize nodes and links generation
+    const { nodes, links } = useMemo(() => {
+        if (!containerRef.current) return { nodes: [], links: [] };
+
+        const width = containerRef.current.offsetWidth || 800;
+        const height = containerRef.current.offsetHeight || 600;
+
+        const nodes: NodeData[] = [];
+        const links: LinkData[] = [];
+
         const centerNode: NodeData = {
             id: 'ROOT',
             type: 'center',
@@ -85,9 +91,6 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
         };
         nodes.push(centerNode);
 
-        const validatorNodes: NodeData[] = [];
-
-        // First pass: Calculate min/max storage across all validators and leaves for scaling
         let minValidatorStorage = Infinity;
         let maxValidatorStorage = -Infinity;
         let minLeafStorage = Infinity;
@@ -99,7 +102,6 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
             minValidatorStorage = Math.min(minValidatorStorage, storageSize);
             maxValidatorStorage = Math.max(maxValidatorStorage, storageSize);
 
-            // Calculate min/max for leaf nodes
             validatorLeaves.forEach((leaf) => {
                 minLeafStorage = Math.min(minLeafStorage, leaf.storage_committed);
                 maxLeafStorage = Math.max(maxLeafStorage, leaf.storage_committed);
@@ -144,7 +146,6 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
                 aggregatedData
             };
             nodes.push(validatorNode);
-            validatorNodes.push(validatorNode);
             links.push({ source: 'ROOT', target: clusterId, type: 'primary' });
 
             const leafCount = validatorLeaves.length;
@@ -170,7 +171,6 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
                 const leafAngleOffset = (indexInLevel / Math.max(totalInLevel - 1, 1)) * arcSpread - arcSpread / 2;
                 const leafAngle = angle + leafAngleOffset;
 
-                // Scale leaf node size based on actual storage range (8-16 box size)
                 const minBoxSize = 8;
                 const maxBoxSize = 16;
                 const leafBoxSize = minBoxSize + ((leafMeta.storage_committed - minLeafStorage) / (maxLeafStorage - minLeafStorage)) * (maxBoxSize - minBoxSize);
@@ -192,7 +192,10 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
             clusterIndex++;
         });
 
-        // Calculate root/network data from all validators
+        return { nodes, links };
+    }, [validatorLeafMap]);
+
+    useEffect(() => {
         const allLeafMetas = Array.from(validatorLeafMap.values()).flat();
         const rootAggregatedData = aggregateLeafData(allLeafMetas);
         onRootDataCalculated({
@@ -203,19 +206,61 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
             utilization_rate: rootAggregatedData.utilization_rate,
             total_credits: rootAggregatedData.total_credits_awarded
         });
-
-        // Pass all leaves to parent for table view
         onLeavesGenerated(allLeafMetas);
+    }, [validatorLeafMap, onRootDataCalculated, onLeavesGenerated]);
 
+    useEffect(() => {
+        if (!svgRef.current || nodes.length === 0) return;
 
-        // Setup D3
+        const svg = d3.select(svgRef.current);
+        const leafBoxes = svg.selectAll('.leaf-box');
+
+        leafBoxes
+            .attr('stroke', function (d: any) {
+                const nodeData = d as NodeData;
+                if (nodeData.leafMeta && highlightEndpoints.includes(nodeData.leafMeta.address.endpoint)) {
+                    return '#FF00A8';
+                }
+                if (nodeData.leafMeta?.credit_rank === 1) return '#FFA500';
+                if (nodeData.leafMeta?.credit_rank === 2) return '#E5E5E5';
+                if (nodeData.leafMeta?.credit_rank === 3) return '#8B4513';
+                return 'none';
+            })
+            .attr('stroke-width', function (d: any) {
+                const nodeData = d as NodeData;
+                if (nodeData.leafMeta && highlightEndpoints.includes(nodeData.leafMeta.address.endpoint)) {
+                    return 4;
+                }
+                return nodeData.leafMeta?.credit_rank ? 2 : 0;
+            })
+            .style('filter', function (d: any) {
+                const nodeData = d as NodeData;
+                if (nodeData.leafMeta && highlightEndpoints.includes(nodeData.leafMeta.address.endpoint)) {
+                    return 'drop-shadow(0 0 12px #FF00A8)';
+                }
+                if (nodeData.leafMeta?.credit_rank === 1) return 'drop-shadow(0 0 8px #FFD700)';
+                if (nodeData.leafMeta?.credit_rank === 2) return 'drop-shadow(0 0 6px #C0C0C0)';
+                if (nodeData.leafMeta?.credit_rank === 3) return 'drop-shadow(0 0 4px #CD7F32)';
+                return 'none';
+            });
+    }, [highlightEndpoints, nodes]);
+
+    useEffect(() => {
+        if (!containerRef.current || !svgRef.current || nodes.length === 0) return;
+
+        const width = containerRef.current.offsetWidth;
+        const height = containerRef.current.offsetHeight;
+
+        nodesRef.current = nodes;
+        linksRef.current = links;
+
         const svg = d3.select(svgRef.current);
         svg.selectAll('*').remove();
 
         // Define gradients and filters
         const defs = svg.append('defs');
 
-        // Solana logo gradient
+        // Xandeum logo gradient
         const logoGradient = defs
             .append('linearGradient')
             .attr('id', 'solanaGradient')
@@ -263,44 +308,33 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
             .on('zoom', (event) => g.attr('transform', event.transform));
         svg.call(zoom);
 
-        // Simulation
-        const simulation = d3
-            .forceSimulation<NodeData>(nodes)
-            .force(
-                'link',
-                d3
-                    .forceLink<NodeData, LinkData>(links)
-                    .id((d) => d.id)
-                    .distance((d) => {
-                        if (d.type === 'leaf') {
-                            const target = d.target as NodeData;
-                            return (target as any).leafDistance || 200;
-                        }
-                        return 1;
-                    })
-                    .strength((d) => (d.type === 'leaf' ? 0.9 : 0))
-            )
-            .force(
-                'charge',
-                d3.forceManyBody<NodeData>().strength((d) => {
-                    if (d.type === 'leaf') return -2;
-                    return 0;
+        // Simulation with reduced alpha decay for faster settling
+        const simulation = d3.forceSimulation<NodeData>(nodes)
+            .force('link', d3.forceLink<NodeData, LinkData>(links)
+                .id((d) => d.id)
+                .distance((d) => {
+                    if (d.type === 'leaf') {
+                        const target = d.target as NodeData;
+                        return (target as any).leafDistance || 200;
+                    }
+                    return 1;
                 })
+                .strength((d) => (d.type === 'leaf' ? 0.9 : 0))
             )
-            .force(
-                'collide',
-                d3
-                    .forceCollide<NodeData>()
-                    .radius((d) => (d.type === 'leaf' ? 6 : 0))
-                    .iterations(3)
+            .force('charge', d3.forceManyBody<NodeData>().strength((d) => {
+                if (d.type === 'leaf') return -2;
+                return 0;
+            }))
+            .force('collide', d3.forceCollide<NodeData>()
+                .radius((d) => (d.type === 'leaf' ? 6 : 0))
+                .iterations(3)
             )
-            .alphaDecay(0.03);
+            .alphaDecay(0.05); // Increased from 0.03 for faster settling
 
         simulationRef.current = simulation;
 
         // Draw links
-        const link = g
-            .append('g')
+        const link = g.append('g')
             .selectAll('line')
             .data(links)
             .join('line')
@@ -309,8 +343,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
             .attr('stroke-opacity', (d) => (d.type === 'primary' ? 0 : 0.5));
 
         // Draw nodes
-        const node = g
-            .append('g')
+        const node = g.append('g')
             .selectAll('g')
             .data(nodes)
             .join('g')
@@ -318,15 +351,12 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
             .style('cursor', 'pointer');
 
         // Validator nodes
-        const valGroup = node.filter((d) => d.type === 'validator');
-
-        // Subtle outer glow - sized to validator
+        const valGroup = node.filter((d: NodeData) => d.type === 'validator');
         valGroup.append('circle')
             .attr('r', (d) => (d.r || 26) + 6)
             .attr('fill', (d, i) => `url(#valGrad-${i})`)
             .attr('opacity', 0.15);
 
-        // Main validator circle
         const bgFill = isDark ? 'rgba(10, 14, 26, 0.95)' : 'rgba(255, 255, 255, 0.95)';
         valGroup
             .append('circle')
@@ -387,9 +417,9 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
             // Top face
             g.append('path')
                 .attr('d', `M ${-boxSize / 2} ${-boxSize / 2} 
-                           L ${boxSize / 2} ${-boxSize / 2} 
-                           L ${boxSize / 2 + depth} ${-boxSize / 2 - depth} 
-                           L ${-boxSize / 2 + depth} ${-boxSize / 2 - depth} Z`)
+                                   L ${boxSize / 2} ${-boxSize / 2} 
+                                   L ${boxSize / 2 + depth} ${-boxSize / 2 - depth} 
+                                   L ${-boxSize / 2 + depth} ${-boxSize / 2 - depth} Z`)
                 .attr('fill', d3.color(parentColor)?.darker(0.5)?.toString() || '#14F195')
                 .attr('opacity', 0.8)
                 .attr('class', 'leaf-box');
@@ -397,9 +427,9 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
             // Right face
             g.append('path')
                 .attr('d', `M ${boxSize / 2} ${-boxSize / 2} 
-                           L ${boxSize / 2} ${boxSize / 2} 
-                           L ${boxSize / 2 + depth} ${boxSize / 2 - depth} 
-                           L ${boxSize / 2 + depth} ${-boxSize / 2 - depth} Z`)
+                                   L ${boxSize / 2} ${boxSize / 2} 
+                                   L ${boxSize / 2 + depth} ${boxSize / 2 - depth} 
+                                   L ${boxSize / 2 + depth} ${-boxSize / 2 - depth} Z`)
                 .attr('fill', d3.color(parentColor)?.darker(0.8)?.toString() || '#0ea86e')
                 .attr('opacity', 0.75)
                 .attr('class', 'leaf-box');
@@ -444,7 +474,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
                     .on('end', bounceAnimation);
             };
             // Start bounce with offset for variation
-            setTimeout(() => bounceAnimation(), Math.random() * 2000);
+            setAutoClearingTimeout(() => bounceAnimation(), Math.random() * 2000);
         });
         leafGroup.append('rect')
             .attr('class', 'leaf-box')
@@ -507,73 +537,9 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
             .select('.leaf-box')
             .style('animation', 'pulse 2s ease-in-out infinite');
 
-        leafGroup.selectAll('.leaf-box')
-            .attr('stroke', function (d: NodeData) {
-                // Highlight if endpoint matches
-                if (
-                    d.leafMeta &&
-                    highlightEndpoints.includes(d.leafMeta.address.endpoint)
-                ) {
-                    return '#FF00A8'; // Special highlight color
-                }
-                // ...existing stroke logic...
-                if (d.leafMeta?.credit_rank === 1) return '#FFA500';
-                if (d.leafMeta?.credit_rank === 2) return '#E5E5E5';
-                if (d.leafMeta?.credit_rank === 3) return '#8B4513';
-                return 'none';
-            })
-            .attr('stroke-width', function (d: NodeData) {
-                if (
-                    d.leafMeta &&
-                    highlightEndpoints.includes(d.leafMeta.address.endpoint)
-                ) {
-                    return 4; // Thicker border for highlight
-                }
-                return d.leafMeta?.credit_rank ? 2 : 0;
-            })
-            .style('filter', function (d: NodeData) {
-                if (
-                    d.leafMeta &&
-                    highlightEndpoints.includes(d.leafMeta.address.endpoint)
-                ) {
-                    return 'drop-shadow(0 0 12px #FF00A8)';
-                }
-                
-                if (d.leafMeta?.credit_rank === 1) return 'drop-shadow(0 0 8px #FFD700)';
-                if (d.leafMeta?.credit_rank === 2) return 'drop-shadow(0 0 6px #C0C0C0)';
-                if (d.leafMeta?.credit_rank === 3) return 'drop-shadow(0 0 4px #CD7F32)';
-                return 'none';
-            });
-
         // Center node
-        const centerGroup = node.filter((d) => d.type === 'center');
+        const centerGroup = node.filter((d: NodeData) => d.type === 'center');
         centerGroup.raise();
-
-        // Animated glow ring for center node
-        centerGroup.append('circle')
-            .attr('r', 60)
-            .attr('fill', 'none')
-            .attr('stroke', 'url(#solanaGradient)')
-            .attr('stroke-width', 2)
-            .attr('opacity', 0.3)
-            .attr('class', 'center-glow-ring');
-
-        // Pulsing glow animation for center node
-        const pulseGlow = () => {
-            centerGroup.select('.center-glow-ring')
-                .transition()
-                .duration(2000)
-                .ease(d3.easeSinInOut)
-                .attr('r', 70)
-                .attr('opacity', 0)
-                .transition()
-                .duration(0)
-                .attr('r', 60)
-                .attr('opacity', 0.3)
-                .on('end', pulseGlow);
-        };
-        pulseGlow();
-
         centerGroup.append('circle')
             .attr('r', 60)
             .attr('fill', isDark ? '#0a0e1a' : '#ffffff')
@@ -581,7 +547,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
             .attr('stroke-width', 1.5);
 
         // Xandeum logo image on top with subtle rotation
-        const centerImage = centerGroup.append('image')
+        centerGroup.append('image')
             .attr('href', '/assets/xandeum-network.png')
             .attr('x', -40)
             .attr('y', -40)
@@ -589,81 +555,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
             .attr('height', 80)
             .attr('preserveAspectRatio', 'xMidYMid meet');
 
-        // Add pulsing animation to validator circles
-        valGroup.each(function (d, i) {
-            const group = d3.select(this);
-
-            // Breathing glow animation
-            const breathe = () => {
-                group.select('.val-circle')
-                    .transition()
-                    .duration(3000 + i * 500)
-                    .ease(d3.easeSinInOut)
-                    .attr('stroke-width', 3)
-                    .transition()
-                    .duration(3000 + i * 500)
-                    .ease(d3.easeSinInOut)
-                    .attr('stroke-width', 2.5)
-                    .on('end', breathe);
-            };
-            // Start with staggered delays
-            setTimeout(() => breathe(), i * 600);
-
-            // Subtle scale pulse for validator images
-            const imageElement = group.select('image');
-            const scalePulse = () => {
-                const baseSize = (d.r || 26) * 1.2;
-                const pulseSize = baseSize * 1.05;
-                imageElement
-                    .transition()
-                    .duration(4000)
-                    .ease(d3.easeSinInOut)
-                    .attr('x', -pulseSize / 2)
-                    .attr('y', -pulseSize / 2)
-                    .attr('width', pulseSize)
-                    .attr('height', pulseSize)
-                    .transition()
-                    .duration(4000)
-                    .ease(d3.easeSinInOut)
-                    .attr('x', -baseSize / 2)
-                    .attr('y', -baseSize / 2)
-                    .attr('width', baseSize)
-                    .attr('height', baseSize)
-                    .on('end', scalePulse);
-            };
-            setTimeout(() => scalePulse(), i * 800);
-        });
-
-        // Animate links with flowing effect
-        const animateLinks = () => {
-            link.filter((d: any) => d.type === 'leaf')
-                .transition()
-                .duration(2000)
-                .ease(d3.easeSinInOut)
-                .attr('stroke-opacity', 0.7)
-                .transition()
-                .duration(2000)
-                .ease(d3.easeSinInOut)
-                .attr('stroke-opacity', 0.5)
-                .on('end', animateLinks);
-        };
-        animateLinks();
-
-        // Add entrance animation for all nodes
-        node.style('opacity', 0)
-            .transition()
-            .delay((d, i) => i * 10)
-            .duration(800)
-            .ease(d3.easeBackOut)
-            .style('opacity', 1);
-
-        link.style('opacity', 0)
-            .transition()
-            .delay((d, i) => i * 5)
-            .duration(1000)
-            .ease(d3.easeQuadOut)
-            .style('opacity', 0.5);
-
+        // Mouse events
         node.on('mouseenter', function (event, d) {
             // First, clear ALL hover effects from all nodes
             node.selectAll('.leaf-focus')
@@ -688,8 +580,6 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
                 onValidatorHover(null);
                 onLeafHover(null);
 
-                // Don't apply any visual effects to center node
-                // Just show root data in sidebar
                 return;
             }
 
@@ -788,19 +678,23 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
             node.attr('transform', (d) => `translate(${d.x},${d.y})`);
         });
 
+        // Stop simulation after it settles
+        simulation.on('end', () => {
+            console.log('Simulation settled');
+        });
+
         return () => {
             simulation.stop();
         };
-    }, [isDark, onValidatorHover, onLeafHover, externalLeafData, highlightEndpoints]);
+    }, [nodes, links, isDark, COLORS, onValidatorHover, onLeafHover]);
 
     const bgClass = isDark
         ? 'bg-gradient-to-br from-[#0a0e1a] via-[#0f1420] to-[#1a0f2e]'
         : 'bg-gradient-to-br from-gray-50 via-white to-gray-100';
 
     return (
-        <div ref={containerRef} className={`flex-grow relative ${bgClass}`}>
+        <div ref={containerRef} className={`flex-grow relative ${bgClass} ${isVisible ? 'block' : 'hidden'}`}>
             <svg ref={svgRef} width="100%" height="100%" />
-
             {isDark && (
                 <div className="absolute inset-0 pointer-events-none">
                     <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/3 rounded-full blur-3xl"></div>

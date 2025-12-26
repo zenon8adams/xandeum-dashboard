@@ -4,13 +4,14 @@ import { formatBytes, formatUptime, formatTimestamp, getCountryFlag } from '../u
 
 interface TableViewProps {
     isDark: boolean;
+    isVisible: boolean;
     allLeaves: LeafMeta[];
     onLeafHover: (leaf: LeafMeta | null) => void;
     selectedLeaf: LeafMeta | null;
     filterEndpoints?: string[];
 }
 
-export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafHover, selectedLeaf, filterEndpoints }) => {
+export const TableView: React.FC<TableViewProps> = ({ isDark, isVisible, allLeaves, onLeafHover, selectedLeaf, filterEndpoints }) => {
     const [displayedLeaves, setDisplayedLeaves] = useState<LeafMeta[]>([]);
     const [page, setPage] = useState(1);
     const [sortBy, setSortBy] = useState<'credit' | 'storage' | 'uptime' | 'pubkey' | 'last_seen'>('credit');
@@ -187,7 +188,7 @@ export const TableView: React.FC<TableViewProps> = ({ isDark, allLeaves, onLeafH
     };
 
     return (
-        <div className={`flex-1 h-screen ${bgColor} overflow-hidden flex flex-col`}>
+        <div className={`flex-1 h-screen ${bgColor} overflow-hidden flex flex-col ${isVisible ? 'block' : 'hidden'}`}>
             {/* Header with search and stats */}
             <div className={`${cardBg} border-b ${border} backdrop-blur-xl p-6`}>
                 <div className="flex items-center justify-between mb-4">

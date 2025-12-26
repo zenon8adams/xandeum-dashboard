@@ -99,7 +99,18 @@ export interface NodeData extends d3.SimulationNodeDatum {
     aggregatedData?: ValidatorLeafNodeAggregatedData;
 }
 
+export interface LiteNodeDataProxy extends d3.SimulationNodeDatum {
+    id: string;
+    type: 'center' | 'validator' | 'leaf';
+    name?: string;
+    leafMeta?: LeafMeta;
+}
+
 export interface LinkData extends d3.SimulationLinkDatum<NodeData> {
+    type: 'primary' | 'leaf';
+}
+
+export interface LiteLinkDataProxy extends d3.SimulationLinkDatum<LiteNodeDataProxy> {
     type: 'primary' | 'leaf';
 }
 

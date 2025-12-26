@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef } from 'react';
+import React, { useLayoutEffect, useMemo, useRef } from 'react';
 import * as am5 from '@amcharts/amcharts5';
 import * as am5map from '@amcharts/amcharts5/map';
 import am5geodata_worldLow from '@amcharts/amcharts5-geodata/worldLow';
@@ -8,34 +8,109 @@ import { validators } from '../data/validators';
 
 interface WorldMapViewProps {
     isDark: boolean;
+    isVisible: boolean;
     allLeaves: LeafMeta[];
     onLeafHover: (leaf: LeafMeta | null) => void;
     selectedLeaf: LeafMeta | null;
     highlightEndpoints?: string[];
-
 }
 
 export const WorldMapView: React.FC<WorldMapViewProps> = ({
     isDark,
+    isVisible,
     allLeaves,
     onLeafHover,
     selectedLeaf,
-    highlightEndpoints
+    highlightEndpoints = []
 }) => {
     const chartRef = useRef<HTMLDivElement>(null);
     const rootRef = useRef<am5.Root | null>(null);
+    const pointSeriesRef = useRef<am5map.MapPointSeries | null>(null);
+
+    const locationMap = useMemo(() => {
+        const locationMap = new Map<string, LeafMeta[]>();
+        allLeaves.forEach((leaf) => {
+            if (leaf.address.ip_info) {
+                const key = `${leaf.address.ip_info.latitude},${leaf.address.ip_info.longitude}`;
+                if (!locationMap.has(key)) {
+                    locationMap.set(key, []);
+                }
+                locationMap.get(key)!.push(leaf);
+            }
+        });
+
+        return locationMap;
+    }, [allLeaves]);
+
+    const baseMapData = useMemo(() => {
+        const mapData: any[] = [];
+        locationMap.forEach((leaves, key) => {
+            const firstLeaf = leaves[0];
+            if (firstLeaf.address.ip_info) {
+                const totalCredits = leaves.reduce((sum, l) => sum + (l.credit || 0), 0);
+                const onlineCount = leaves.filter(l => l.is_online).length;
+
+                const validatorVersion = leaves[0].version;
+                const validator = validators.find(v => {
+                    if (v.version === validatorVersion) return true;
+                    const majorMinor = String(validatorVersion).match(/^(\d+\.\d+)/)?.[1];
+                    if (majorMinor === v.version) return true;
+                    if (String(validatorVersion).startsWith(v.version)) return true;
+                    return false;
+                });
+
+                mapData.push({
+                    latitude: firstLeaf.address.ip_info.latitude,
+                    longitude: firstLeaf.address.ip_info.longitude,
+                    title: `${firstLeaf.address.ip_info.countryName}`,
+                    info: `${leaves.length} nodes\n${onlineCount} online\n${totalCredits.toLocaleString()} credits`,
+                    color: validator ? validator.color : '#6B7280',
+                    nodes: leaves,
+                });
+            }
+        });
+
+        return mapData;
+    }, [locationMap]);
+
+    useLayoutEffect(() => {
+        if (!pointSeriesRef.current || !highlightEndpoints) return;
+
+        const pointSeries = pointSeriesRef.current;
+
+        pointSeries.dataItems.forEach(dataItem => {
+            const data = dataItem.dataContext as any;
+            if (data && data.nodes) {
+                const isHighlighted = data.nodes.some((l: LeafMeta) =>
+                    highlightEndpoints.includes(l.address.endpoint)
+                );
+
+                const bullet = dataItem.bullets?.[0];
+                if (bullet) {
+                    const sprite = bullet.get('sprite');
+                    if (sprite instanceof am5.Container) {
+                        const circle = sprite.children.getIndex(0);
+                        if (circle instanceof am5.Circle) {
+                            circle.setAll({
+                                fill: am5.color(isHighlighted ? 0xff00a8 : 0x9945ff),
+                                strokeWidth: isHighlighted ? 4 : 2,
+                                stroke: am5.color(isHighlighted ? 0xff00a8 : 0xffffff),
+                            });
+                        }
+                    }
+                }
+            }
+        });
+    }, [highlightEndpoints]);
 
     useLayoutEffect(() => {
         if (!chartRef.current) return;
 
-        // Create root element
         const root = am5.Root.new(chartRef.current);
         rootRef.current = root;
 
-        // Set themes
         root.setThemes([am5themes_Animated.new(root)]);
 
-        // Create the map chart
         const chart = root.container.children.push(
             am5map.MapChart.new(root, {
                 panX: 'rotateX',
@@ -48,7 +123,6 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
             })
         );
 
-        // Create main polygon series for countries
         const polygonSeries = chart.series.push(
             am5map.MapPolygonSeries.new(root, {
                 geoJSON: am5geodata_worldLow,
@@ -63,10 +137,10 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
             stroke: am5.color(isDark ? 0x1a202c : 0xffffff),
             strokeWidth: 0.5,
         });
+
         polygonSeries.mapPolygons.template.events.on('click', (ev) => {
             const geo = (ev.target.dataItem?.dataContext as any)?.geometry;
             if (geo && geo.type === "Polygon" && geo.coordinates?.[0]?.[0]) {
-                // Calculate centroid of the polygon
                 const coords = geo.coordinates[0];
                 let lat = 0, lon = 0;
                 coords.forEach(([lng, lt]: [number, number]) => {
@@ -84,7 +158,6 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
             fill: am5.color(isDark ? 0x4a5568 : 0xcbd5e0),
         });
 
-        // Add graticule (grid lines)
         const graticuleSeries = chart.series.unshift(
             am5map.GraticuleSeries.new(root, {
                 step: 10,
@@ -96,7 +169,6 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
             strokeOpacity: 0.3,
         });
 
-        // Background
         const backgroundSeries = chart.series.unshift(
             am5map.MapPolygonSeries.new(root, {})
         );
@@ -111,7 +183,6 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
             geometry: am5map.getGeoRectangle(90, 180, -90, -180),
         });
 
-        // Create point series for nodes
         const pointSeries = chart.series.push(
             am5map.MapPointSeries.new(root, {
                 latitudeField: 'latitude',
@@ -119,11 +190,16 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
             })
         );
 
-        // Configure bullets (node markers)
+        pointSeriesRef.current = pointSeries;
+
         pointSeries.bullets.push((root, series, dataItem) => {
             const container = am5.Container.new(root, {});
 
-            const isHighlighted = (dataItem.dataContext as any).isHighlighted;
+            const data = dataItem.dataContext as any;
+            const isHighlighted = data.nodes?.some((l: LeafMeta) =>
+                highlightEndpoints.includes(l.address.endpoint)
+            ) || false;
+
             const circle = container.children.push(
                 am5.Circle.new(root, {
                     radius: 6,
@@ -136,7 +212,6 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
                 })
             );
 
-            // Pulse animation
             circle.animate({
                 key: 'scale',
                 from: 1,
@@ -146,7 +221,6 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
                 loops: Infinity,
             });
 
-            // Only highlight and show sidebar on hover
             circle.events.on('pointerover', (e) => {
                 const data = dataItem.dataContext as any;
                 if (data && data.nodes && data.nodes.length > 0) {
@@ -157,20 +231,23 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
             });
 
             circle.events.on('pointerout', () => {
-                circle.set('fill', am5.color(0x9945ff));
+                const data = dataItem.dataContext as any;
+                const isHighlighted = data.nodes?.some((l: LeafMeta) =>
+                    highlightEndpoints.includes(l.address.endpoint)
+                ) || false;
+                circle.set('fill', am5.color(isHighlighted ? 0xff00a8 : 0x9945ff));
                 circle.set('radius', 6);
             });
 
-            // Animate globe and update sidebar on click
             circle.events.on('click', (e) => {
                 const data = dataItem.dataContext as any;
                 if (data && data.nodes && data.nodes.length > 0) {
                     onLeafHover(data.nodes[0]);
                     chart.zoomToGeoPoint(
                         { latitude: data.latitude, longitude: data.longitude },
-                        3, // zoom level
-                        true, // animate
-                        800 // duration ms
+                        3,
+                        true,
+                        800
                     );
                 }
             });
@@ -180,51 +257,18 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
             });
         });
 
-        // Group nodes by location
-        const locationMap = new Map<string, LeafMeta[]>();
-        allLeaves.forEach((leaf) => {
-            if (leaf.address.ip_info) {
-                const key = `${leaf.address.ip_info.latitude},${leaf.address.ip_info.longitude}`;
-                if (!locationMap.has(key)) {
-                    locationMap.set(key, []);
-                }
-                locationMap.get(key)!.push(leaf);
-            }
+        const sortedData = [...baseMapData].sort((a, b) => {
+            const aHighlighted = a.nodes?.some((l: LeafMeta) =>
+                highlightEndpoints.includes(l.address.endpoint)
+            );
+            const bHighlighted = b.nodes?.some((l: LeafMeta) =>
+                highlightEndpoints.includes(l.address.endpoint)
+            );
+            return (aHighlighted ? 1 : 0) - (bHighlighted ? 1 : 0);
         });
 
-        // Prepare data for map
-        const mapData: any[] = [];
-        locationMap.forEach((leaves, key) => {
-            const firstLeaf = leaves[0];
-            if (firstLeaf.address.ip_info) {
-                const totalCredits = leaves.reduce((sum, l) => sum + (l.credit || 0), 0);
-                const onlineCount = leaves.filter(l => l.is_online).length;
+        pointSeries.data.setAll(sortedData);
 
-                // Find validator color
-                const validatorVersion = leaves[0].version;
-                const validator = validators.find(v => {
-                    if (v.version === validatorVersion) return true;
-                    const majorMinor = String(validatorVersion).match(/^(\d+\.\d+)/)?.[1];
-                    if (majorMinor === v.version) return true;
-                    if (String(validatorVersion).startsWith(v.version)) return true;
-                    return false;
-                });
-
-                mapData.push({
-                    latitude: firstLeaf.address.ip_info.latitude,
-                    longitude: firstLeaf.address.ip_info.longitude,
-                    title: `${firstLeaf.address.ip_info.countryName}`,
-                    info: `${leaves.length} nodes\n${onlineCount} online\n${totalCredits.toLocaleString()} credits`,
-                    color: validator ? validator.color : '#6B7280',
-                    nodes: leaves,
-                    isHighlighted: leaves.some(l => highlightEndpoints.includes(l.address.endpoint)),
-                });
-            }
-        });
-
-        pointSeries.data.setAll(mapData);
-
-        // Add rotation animation
         chart.animate({
             key: 'rotationX',
             from: 0,
@@ -233,19 +277,16 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
             loops: Infinity,
         });
 
-        // Set initial rotation
         chart.set('rotationX', -20);
         chart.set('rotationY', -20);
 
-        // Make chart appear
         chart.appear(1000, 100);
 
         return () => {
             root.dispose();
         };
-    }, [allLeaves, isDark, onLeafHover, highlightEndpoints]);
+    }, [allLeaves, isDark, onLeafHover, baseMapData]);
 
-    // Update colors when theme changes
     useLayoutEffect(() => {
         if (!rootRef.current) return;
 
@@ -253,7 +294,6 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
         const chart = root.container.children.getIndex(0) as am5map.MapChart;
         if (!chart) return;
 
-        // Find series by type instead of relying on index
         let polygonSeries: am5map.MapPolygonSeries | undefined;
         let backgroundSeries: am5map.MapPolygonSeries | undefined;
         let graticuleSeries: am5map.GraticuleSeries | undefined;
@@ -268,7 +308,6 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
             }
         });
 
-        // Update polygon series colors
         if (polygonSeries) {
             polygonSeries.mapPolygons.template.setAll({
                 fill: am5.color(isDark ? 0x2d3748 : 0xe2e8f0),
@@ -276,14 +315,12 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
             });
         }
 
-        // Update background
         if (backgroundSeries) {
             backgroundSeries.mapPolygons.template.setAll({
                 fill: am5.color(isDark ? 0x0a0e1a : 0xf8fafc),
             });
         }
 
-        // Update graticule
         if (graticuleSeries) {
             graticuleSeries.mapLines.template.setAll({
                 stroke: am5.color(isDark ? 0x4a5568 : 0xcbd5e0),
@@ -296,10 +333,9 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
         : 'bg-gradient-to-br from-gray-50 via-white to-gray-100';
 
     return (
-        <div className={`flex-grow relative ${bgClass}`}>
+        <div className={`flex-grow relative ${bgClass} ${isVisible ? 'block' : 'hidden'}`}>
             <div ref={chartRef} style={{ width: '100%', height: '100%' }} />
 
-            {/* Legend */}
             <div className={`absolute top-[20rem] left-8 ${isDark ? 'bg-gray-900/90' : 'bg-white/90'} backdrop-blur-xl rounded-xl p-4 shadow-lg border ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
                 <h3 className={`text-sm font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
                     Node Distribution
@@ -332,7 +368,6 @@ export const WorldMapView: React.FC<WorldMapViewProps> = ({
                 </div>
             </div>
 
-            {/* Stats overlay */}
             <div className={`absolute top-8 left-8 ${isDark ? 'bg-gray-900/90' : 'bg-white/90'} backdrop-blur-xl rounded-xl p-4 shadow-lg border ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
                 <div className="space-y-3">
                     <div>

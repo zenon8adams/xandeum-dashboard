@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { JSX, useCallback, useEffect, useRef, useState } from 'react';
 import { Validator, LeafMeta, ValidatorLeafNodeAggregatedData } from './types';
 import { NetworkGraph } from './components/NetworkGraph';
 import { Sidebar } from './components/Sidebar';
@@ -185,33 +185,34 @@ export default function SolanaNetworkTopology() {
                 onRootDataCalculated={setRootData}
             />
 
-            {view === 'network' ? (
-                <NetworkGraph
-                    isDark={isDark}
-                    onValidatorHover={handleValidatorHover}
-                    onLeafHover={setHoveredLeaf}
-                    onRootDataCalculated={setRootData}
-                    onLeavesGenerated={handleLeavesGenerated}
-                    externalLeafData={apiLeaves}
-                    highlightEndpoints={searchResults}
-                />
-            ) : view === 'world' ? (
-                <WorldMapView
-                    isDark={isDark}
-                    allLeaves={allLeaves}
-                    onLeafHover={handleLeafHoverInTable}
-                    selectedLeaf={hoveredLeaf}
-                    highlightEndpoints={searchResults}
-                />
-            ) : (
-                <TableView
-                    isDark={isDark}
-                    allLeaves={allLeaves}
-                    onLeafHover={handleLeafHoverInTable}
-                    selectedLeaf={hoveredLeaf}
-                    filterEndpoints={searchResults}
-                />
-            )}
+            <NetworkGraph
+                isVisible={view === 'network'}
+                isDark={isDark}
+                onValidatorHover={handleValidatorHover}
+                onLeafHover={setHoveredLeaf}
+                onRootDataCalculated={setRootData}
+                onLeavesGenerated={handleLeavesGenerated}
+                externalLeafData={apiLeaves}
+                highlightEndpoints={searchResults}
+            />
+
+            <WorldMapView
+                isDark={isDark}
+                isVisible={view === 'world'}
+                allLeaves={allLeaves}
+                onLeafHover={handleLeafHoverInTable}
+                selectedLeaf={hoveredLeaf}
+                highlightEndpoints={searchResults}
+            />
+
+            <TableView
+                isDark={isDark}
+                isVisible={view === 'table'}
+                allLeaves={allLeaves}
+                onLeafHover={handleLeafHoverInTable}
+                selectedLeaf={hoveredLeaf}
+                filterEndpoints={searchResults}
+            />
 
             <Sidebar
                 isDark={isDark}

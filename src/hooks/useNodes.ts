@@ -14,7 +14,7 @@ export function useRootNode() {
       isFirstFetch.current = false;
       return result;
     },
-    // staleTime: 30000,
+    staleTime: Infinity,
     refetchInterval: 60000,
   });
 }
@@ -32,7 +32,7 @@ export function useLeafNodes() {
       isFirstFetch.current = false;
       return result;
     },
-    // staleTime: 30000,
+    staleTime: Infinity,
     refetchInterval: 60000,
   });
 }

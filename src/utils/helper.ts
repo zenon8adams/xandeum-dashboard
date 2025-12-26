@@ -193,3 +193,18 @@ export const formatNumber = (num: number): string => {
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
     return num.toFixed(0);
 };
+
+/**
+ * Wrapper for setTimeout that clears the timeout inside the callback.
+ * @param fn The function to execute after the delay.
+ * @param delay The delay in milliseconds.
+ * @returns The timeout ID.
+ */
+export function setAutoClearingTimeout(fn: () => void, delay: number): ReturnType<typeof setTimeout> {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    timeoutId = setTimeout(() => {
+        clearTimeout(timeoutId);
+        fn();
+    }, delay);
+    return timeoutId;
+}

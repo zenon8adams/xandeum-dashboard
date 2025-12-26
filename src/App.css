@@ -1,1 +1,15 @@
-/* App styles - using Tailwind CSS for the new reagraph implementation */
+.persistent-view {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transition: opacity 0.2s;
+}
+.persistent-view[aria-hidden="true"] {
+  opacity: 0;
+  pointer-events: none;
+}
+.persistent-view[aria-hidden="false"] {
+  opacity: 1;
+  pointer-events: auto;
+}/* App styles - using Tailwind CSS for the new reagraph implementation */
