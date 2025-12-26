@@ -1,8 +1,11 @@
-<div style="display: flex; align-items: center; justify-content: center; gap: 1rem;">
-    <b style="font-size: 2rem;">Xandeum Analytics Dashboard</b>
+<div align="center">
+  <h1>
+    <b>Xandeum Analytics Dashboard</b>
     <img src="./public/assets/xandeum-node.png" 
-             alt="Xandeum logo" 
-             style="width: 60px; height: 60px; border-radius: 100%; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+         alt="Xandeum logo" 
+         width="60" 
+         height="60">
+  </h1>
 </div>
 
 ## **Project Overview:**
@@ -46,13 +49,11 @@ npm install
 
 # create .env (see below)
 # development
-npm run start
+yarn start
 
 # build
-npm run build
+yarn build
 
-# preview production build
-npm run preview
 ```
 
 Environment
@@ -96,11 +97,3 @@ yarn run test
 ```
 
 ---
-
-## Image layout example ✅
-
-Below is a simple HTML + CSS snippet you can drop into any markdown-rendered page (or a docs page) to display three images from `public/assets/` with the **map** taking the full width on top and the **table** and **graph** sharing the width beneath.
-
-> Note: Files in `public/` are served at the site root. Use `/assets/<name>` as the image `src` (e.g. `/assets/map.png`).
-
-This layout is intentionally minimal and framework-agnostic (works in raw HTML/CSS or in React/MDX). If you'd like, I can provide a Tailwind CSS variant or an accessible, responsive React component for reuse.
