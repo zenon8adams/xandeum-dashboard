@@ -10,7 +10,7 @@
 
 ## **Project Overview:**
 
-This is the frontend for the [Xandeum](https://www.xandeum.network/) analytics dashboard, built on top of this [backend repo](https://github.com/zenon8adams/xandeum-network-backend.git).
+This is the frontend for the [Xandeum](https://www.xandeum.network/) analytics dashboard, built on top of this [backend repo](https://github.com/zenon8adams/xandeum-network-backend.git). You can visit the application at [xandeum-network.xyz](https://xandeum-network.xyz), because the domain name is similar to the official Xandeum domain, it may be mistakenly flagged as phishing. This is not the case, and we apologize for any confusion.
 
 It’s built with Vite, React, and TypeScript, and focuses on making Xandeum’s network data easy to explore — including provider node (pNode) performance, overall storage and usage, node credits, geographic distribution, and an AI-powered chat for querying network insights.
 
