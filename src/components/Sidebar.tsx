@@ -827,7 +827,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                         <div className="grid grid-cols-2 gap-3 mb-3">
                                             <StatCard
                                                 label="Avg Uptime"
-                                                value={`${hoveredValidatorData.average_uptime.toFixed(2)}%`}
+                                                value={formatUptime(hoveredValidatorData.average_uptime)}
                                                 icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
                                                 color="#10B981"
                                             />
