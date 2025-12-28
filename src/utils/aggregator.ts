@@ -69,7 +69,7 @@ export function aggregateLeafData(leaves: LeafMeta[]): ValidatorLeafNodeAggregat
         .slice(0, 5);
 
     // Performance metrics
-    const average_uptime = leaves.reduce((sum, l) => sum + l.uptime, 0) / operators;
+    const average_uptime = Math.floor(leaves.reduce((sum, l) => sum + l.uptime, 0) / Math.max(leaves.length, 1));
     const accessibleLeaves = leaves.filter(l => l.accessible_node_detail);
     const total_packets_sent = accessibleLeaves.reduce((sum, l) => sum + (l.accessible_node_detail?.packets_sent || 0), 0);
     const total_packets_received = accessibleLeaves.reduce((sum, l) => sum + (l.accessible_node_detail?.packets_received || 0), 0);

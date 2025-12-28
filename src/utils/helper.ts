@@ -147,8 +147,7 @@ export const formatBytes = (bytes: number): string => {
     return `${bytes} B`;
 };
 
-export const formatUptime = (milliseconds: number): string => {
-    const seconds = Math.floor(milliseconds / 1000);
+export const formatUptime = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
